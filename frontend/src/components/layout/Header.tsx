@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
+// comment 
 
 const navLinks = [
   { href: '/listings', label: 'Browse', icon: Search },
