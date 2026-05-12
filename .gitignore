@@ -9,3 +9,4 @@ dist/
 backend/uploads/
 *-adminsdk-*.json
 stripe_backup_code.txt
+.vercel
