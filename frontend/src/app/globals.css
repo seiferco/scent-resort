@@ -1,0 +1,187 @@
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@700&f[]=satoshi@400,500,700&display=swap');
+@import "tailwindcss";
+
+/* ── Raw Form Design System ── */
+
+:root {
+  --background: #E4E2DD;
+  --foreground: #1E1E1E;
+  --accent: #DB4A2B;
+  --accent-warm: #F8A348;
+  --accent-pink: #FF89A9;
+  --border: #C8C5BF;
+  --border-hover: #A8A5A0;
+  --foreground-secondary: #4A4A4A;
+  --foreground-muted: #6E6E6E;
+  --background-card: #EDEBE7;
+  --ring: #DB4A2B;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-card: var(--background-card);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-accent: var(--accent);
+  --color-accent-warm: var(--accent-warm);
+  --color-accent-pink: var(--accent-pink);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-ring: var(--ring);
+  --font-display: 'Clash Display', sans-serif;
+  --font-body: 'Satoshi', sans-serif;
+}
+
+/* ── Base Styles ── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Satoshi', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Focus styles ── */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Custom Scrollbar — Red thumb, base track ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C43D20;
+}
+
+/* ── Selection — Red with white text ── */
+::selection {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+/* ── Slide-up entrance animation ── */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Staggered delays */
+.animate-delay-100 { animation-delay: 0.1s; }
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-300 { animation-delay: 0.3s; }
+.animate-delay-400 { animation-delay: 0.4s; }
+.animate-delay-500 { animation-delay: 0.5s; }
+
+/* ── Gradient blob animation ── */
+@keyframes blobPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate(30px, -20px) scale(1.05);
+  }
+}
+
+@keyframes blobDrift {
+  0%, 100% {
+    opacity: 0.35;
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    opacity: 0.6;
+    transform: translate(-20px, 30px) scale(1.03);
+  }
+  66% {
+    opacity: 0.5;
+    transform: translate(20px, -10px) scale(0.97);
+  }
+}
+
+.blob {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  filter: blur(140px);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.blob-red {
+  background: var(--accent);
+  animation: blobPulse 8s ease-in-out infinite;
+}
+
+.blob-orange {
+  background: var(--accent-warm);
+  animation: blobDrift 10s ease-in-out infinite;
+}
+
+.blob-pink {
+  background: var(--accent-pink);
+  animation: blobPulse 12s ease-in-out infinite reverse;
+}
+
+/* ── Button directional fill ── */
+.btn-fill {
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.btn-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #FFFFFF;
+  transform: translateX(-101%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: -1;
+}
+
+.btn-fill:hover::before {
+  transform: translateX(0);
+}
+
+.btn-fill:hover {
+  color: var(--foreground);
+}
+
+/* ── Input autofill override ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--background) inset;
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+}

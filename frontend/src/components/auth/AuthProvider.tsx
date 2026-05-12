@@ -1,0 +1,108 @@
+'use client';
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { getFirebaseAuth } from '@/lib/firebase';
+import { api } from '@/lib/api';
+import type { User } from '@scentresort/shared';
+
+interface AuthContextType {
+  firebaseUser: FirebaseUser | null;
+  user: User | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchUserProfile(register = false) {
+    try {
+      const res = register
+        ? await api.post<{ user: User }>('/auth/register')
+        : await api.get<{ user: User }>('/auth/me');
+      setUser(res.user);
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+  }
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), async (fbUser) => {
+      setFirebaseUser(fbUser);
+      if (fbUser) {
+        await fetchUserProfile(true);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  async function signIn(email: string, password: string) {
+    await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+  }
+
+  async function signUp(email: string, password: string) {
+    await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+  }
+
+  async function signInWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(getFirebaseAuth(), provider);
+  }
+
+  async function signOut() {
+    await firebaseSignOut(getFirebaseAuth());
+    setUser(null);
+  }
+
+  async function refreshUser() {
+    if (firebaseUser) {
+      await fetchUserProfile();
+    }
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        firebaseUser,
+        user,
+        loading,
+        signIn,
+        signUp,
+        signInWithGoogle,
+        signOut,
+        refreshUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+}

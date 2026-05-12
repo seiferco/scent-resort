@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users — anyone can read public profiles, only self can write
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Listings — anyone can read active listings, backend handles writes via Admin SDK
+    match /listings/{listingId} {
+      allow read: if true;
+      allow write: if false; // Managed by backend
+    }
+
+    // Conversations — only participants can read
+    match /conversations/{conversationId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.participantIds;
+      allow write: if false; // Managed by backend
+
+      // Messages subcollection — only participants can read
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        allow write: if false; // Managed by backend
+      }
+    }
+
+    // Reviews — anyone can read, backend handles writes
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow write: if false; // Managed by backend
+    }
+
+    // Reports — backend only
+    match /reports/{reportId} {
+      allow read, write: if false; // Managed by backend
+    }
+  }
+}
