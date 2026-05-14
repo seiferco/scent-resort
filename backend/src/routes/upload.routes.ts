@@ -6,7 +6,8 @@ import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
-const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
+const isVercel = !!process.env.VERCEL;
+const UPLOADS_DIR = isVercel ? '/tmp/uploads' : path.resolve(__dirname, '../../uploads');
 const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
 const LISTINGS_DIR = path.join(UPLOADS_DIR, 'listings');
 
