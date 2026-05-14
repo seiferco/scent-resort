@@ -32,13 +32,13 @@ export default function HomePage() {
     api
       .get<{ listings: Listing[] }>('/listings')
       .then((res) => setListings(res.listings.slice(0, 8)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <div>
-      {/* Hero — Full Viewport */}
+      {/* Hero — Full  Viewport */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <GradientBlobs />
 
