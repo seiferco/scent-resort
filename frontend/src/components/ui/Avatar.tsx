@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 type Size = 'sm' | 'md' | 'lg' | 'xl';
@@ -17,6 +20,8 @@ interface AvatarProps {
 }
 
 export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
+
   const initials = name
     ?.split(' ')
     .map((n) => n[0])
@@ -24,11 +29,12 @@ export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
     .toUpperCase()
     .slice(0, 2) || '?';
 
-  if (src) {
+  if (src && !imgError) {
     return (
       <img
         src={src}
         alt={name}
+        onError={() => setImgError(true)}
         className={cn(
           'object-cover flex-shrink-0',
           sizeStyles[size],
