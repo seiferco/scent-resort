@@ -34,9 +34,6 @@ app.use(
 
 app.use(express.json());
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/listings', listingsRoutes);

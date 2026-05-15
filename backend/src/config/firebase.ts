@@ -17,6 +17,7 @@ if (!admin.apps.length) {
 
     admin.initializeApp({
       credential: admin.credential.cert(credential),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'scent-resort.firebasestorage.app',
     });
   } else {
     // Falls back to GOOGLE_APPLICATION_CREDENTIALS or default credentials
