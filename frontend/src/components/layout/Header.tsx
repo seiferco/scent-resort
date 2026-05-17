@@ -14,6 +14,8 @@ import {
   LogOut,
   Menu,
   X,
+  ShoppingBag,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Avatar } from '@/components/ui/Avatar';
@@ -23,6 +25,7 @@ import { cn } from '@/lib/utils';
 const navLinks = [
   { href: '/listings', label: 'Browse', icon: Search },
   { href: '/listings/create', label: 'Sell', icon: Plus },
+  { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
 ];
@@ -213,6 +216,19 @@ export function Header() {
                 >
                   <User className="h-5 w-5" />
                   Profile
+                </Link>
+                <Link
+                  href="/settings/payments"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-3 text-sm font-medium uppercase tracking-[0.1em] transition-colors',
+                    isActive('/settings/payments')
+                      ? 'text-accent'
+                      : 'text-foreground-secondary hover:text-foreground',
+                  )}
+                >
+                  <CreditCard className="h-5 w-5" />
+                  Payments
                 </Link>
                 {user?.role === 'admin' && (
                   <Link

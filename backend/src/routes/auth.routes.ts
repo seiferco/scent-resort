@@ -27,6 +27,9 @@ router.post('/register', requireToken, async (req: Request, res: Response) => {
       role: 'user' as const,
       banned: false,
       banReason: null,
+      stripeAccountId: null,
+      stripeAccountStatus: 'pending' as const,
+      stripeOnboardingComplete: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };

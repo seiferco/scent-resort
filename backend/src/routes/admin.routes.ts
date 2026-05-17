@@ -4,6 +4,7 @@ import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/requireAdmin';
 import { db } from '../config/firebase';
 import * as moderationService from '../services/moderation.service';
+import { getDisputedOrders, resolveDispute } from '../services/order.service';
 import { getParam } from '../types';
 
 const router = Router();
@@ -83,6 +84,36 @@ router.post('/users/:uid/ban', async (req: Request, res: Response) => {
     res.json({ message: 'Seller banned' });
   } catch (err: any) {
     console.error('Ban seller error:', err);
+    res.status(400).json({ error: 'bad_request', message: err.message });
+  }
+});
+
+// GET /admin/disputes — List disputed orders
+router.get('/disputes', async (_req: Request, res: Response) => {
+  try {
+    const orders = await getDisputedOrders();
+    res.json({ orders });
+  } catch (err) {
+    console.error('Get disputes error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to fetch disputes' });
+  }
+});
+
+// POST /admin/orders/:id/resolve-dispute — Resolve a dispute
+router.post('/orders/:id/resolve-dispute', async (req: Request, res: Response) => {
+  try {
+    const adminUser = (req as AuthenticatedRequest).user;
+    const { resolution, adminNotes } = req.body;
+
+    if (!resolution || !['seller_wins', 'buyer_wins'].includes(resolution)) {
+      res.status(400).json({ error: 'bad_request', message: 'resolution must be seller_wins or buyer_wins' });
+      return;
+    }
+
+    await resolveDispute(getParam(req, 'id'), adminUser.uid, resolution, adminNotes || '');
+    res.json({ message: `Dispute resolved: ${resolution}` });
+  } catch (err: any) {
+    console.error('Resolve dispute error:', err);
     res.status(400).json({ error: 'bad_request', message: err.message });
   }
 });

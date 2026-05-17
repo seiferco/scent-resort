@@ -26,6 +26,7 @@ router.get('/:id', async (req: Request, res: Response) => {
         bio: data.bio || '',
         location: data.location || '',
         preferredPayment: data.preferredPayment || '',
+        stripeAccountStatus: data.stripeAccountStatus || 'pending',
         createdAt: data.createdAt,
       },
     });

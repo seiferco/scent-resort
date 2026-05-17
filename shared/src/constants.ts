@@ -7,3 +7,9 @@ export const SUPPORTED_CURRENCIES = ['usd'] as const;
 
 // Messages
 export const MAX_MESSAGE_LENGTH = 5000;
+
+// Payments
+export const PLATFORM_FEE_PERCENT = 10;
+export const ESCROW_WINDOW_HOURS = 48;
+export const AUTO_DELIVERY_DAYS = 7;
+export const SELLER_SHIP_DEADLINE_DAYS = 5;

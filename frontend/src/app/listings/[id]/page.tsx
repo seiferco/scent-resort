@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { MessageCircle, MapPin, CreditCard, Calendar, ChevronLeft } from 'lucide-react';
+import { MessageCircle, MapPin, CreditCard, Calendar, ChevronLeft, Pencil, Trash2, ShoppingBag } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { ReportButton } from '@/components/listings/ReportButton';
@@ -22,6 +22,7 @@ interface SellerProfile {
   photoURL: string | null;
   location: string;
   preferredPayment: string;
+  stripeAccountStatus: string;
   createdAt: string;
 }
 
@@ -179,15 +180,30 @@ export default function ListingDetailPage() {
 
           {/* CTA */}
           {listing.status === 'active' && !isSeller && (
-            <Button
-              size="lg"
-              loading={messaging}
-              onClick={handleMessageSeller}
-              className="w-full gap-2"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Message Seller
-            </Button>
+            <div className="space-y-2">
+              {seller?.stripeAccountStatus === 'active' ? (
+                <Link href={`/checkout/${listing.id}`}>
+                  <Button size="lg" className="w-full gap-2">
+                    <ShoppingBag className="h-4 w-4" />
+                    Buy Now &mdash; {formatPrice(listing.price)}
+                  </Button>
+                </Link>
+              ) : (
+                <div className="border border-border py-3 text-center text-xs font-bold text-foreground-muted uppercase tracking-[0.15em]">
+                  Seller has not set up payments yet
+                </div>
+              )}
+              <Button
+                variant="secondary"
+                size="lg"
+                loading={messaging}
+                onClick={handleMessageSeller}
+                className="w-full gap-2"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Message Seller
+              </Button>
+            </div>
           )}
 
           {listing.status === 'sold' && (
@@ -201,6 +217,12 @@ export default function ListingDetailPage() {
               <div className="border border-accent py-3 text-center text-xs font-bold text-accent uppercase tracking-[0.15em]">
                 This is your listing
               </div>
+              <Link href={`/listings/${id}/edit`}>
+                <Button variant="secondary" className="w-full gap-2">
+                  <Pencil className="h-4 w-4" />
+                  Edit Listing
+                </Button>
+              </Link>
               <Button
                 variant="secondary"
                 className="w-full"
@@ -212,6 +234,19 @@ export default function ListingDetailPage() {
                 }}
               >
                 Mark as Sold
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full gap-2 text-red-500 hover:text-red-400"
+                onClick={async () => {
+                  if (confirm('Are you sure you want to remove this listing? This cannot be undone.')) {
+                    await api.delete(`/listings/${id}`);
+                    router.push('/dashboard');
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Remove Listing
               </Button>
             </div>
           )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -10,13 +10,19 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function RegisterPage() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/listings');
+    }
+  }, [authLoading, user, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +40,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await signUp(email, password);
-      router.push('/dashboard');
+      router.push('/listings');
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
     } finally {
@@ -45,7 +51,7 @@ export default function RegisterPage() {
   async function handleGoogle() {
     try {
       await signInWithGoogle();
-      router.push('/dashboard');
+      router.push('/listings');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
     }

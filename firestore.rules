@@ -39,5 +39,18 @@ service cloud.firestore {
     match /reports/{reportId} {
       allow read, write: if false; // Managed by backend
     }
+
+    // Orders — participants can read, backend handles writes
+    match /orders/{orderId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.buyerId
+            || request.auth.uid == resource.data.sellerId);
+      allow write: if false; // Managed by backend
+    }
+
+    // Stripe events — backend only (idempotency tracking)
+    match /stripe_events/{eventId} {
+      allow read, write: if false; // Managed by backend
+    }
   }
 }

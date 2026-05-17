@@ -2,6 +2,8 @@
 
 export type UserRole = 'user' | 'admin';
 
+export type StripeAccountStatus = 'pending' | 'active' | 'restricted' | 'disabled';
+
 export interface User {
   uid: string;
   email: string;
@@ -13,6 +15,9 @@ export interface User {
   role: UserRole;
   banned: boolean;
   banReason: string | null;
+  stripeAccountId: string | null;
+  stripeAccountStatus: StripeAccountStatus;
+  stripeOnboardingComplete: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +32,7 @@ export type ListingCondition =
 
 export type ListingStatus =
   | 'active'
+  | 'pending_sale'
   | 'sold'
   | 'under_review'
   | 'removed';
@@ -111,6 +117,67 @@ export interface Review {
   rating: number; // 1-5
   comment: string;
   createdAt: string;
+}
+
+// ── Order ──
+
+export type OrderStatus =
+  | 'pending_payment'
+  | 'paid'
+  | 'shipped'
+  | 'delivered'
+  | 'completed'
+  | 'disputed'
+  | 'refunded'
+  | 'cancelled';
+
+export type DisputeResolution = 'seller_wins' | 'buyer_wins';
+
+export interface Order {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  listingImage: string;
+  buyerId: string;
+  buyerDisplayName: string;
+  sellerId: string;
+  sellerDisplayName: string;
+
+  // Money
+  amount: number;        // total in cents
+  platformFee: number;   // in cents
+  sellerPayout: number;  // amount - platformFee in cents
+  currency: string;
+
+  // Stripe references
+  stripePaymentIntentId: string;
+  stripeChargeId: string | null;
+  stripeTransferId: string | null;
+
+  // Status
+  status: OrderStatus;
+
+  // Shipping
+  trackingNumber: string | null;
+  trackingCarrier: string | null;
+  shippedAt: string | null;
+
+  // Escrow
+  deliveredAt: string | null;
+  escrowReleaseAt: string | null;
+  completedAt: string | null;
+
+  // Dispute
+  disputeReason: string | null;
+  disputeDescription: string | null;
+  disputeOpenedAt: string | null;
+  disputeResolvedAt: string | null;
+  disputeResolution: DisputeResolution | null;
+  disputeAdminId: string | null;
+  disputeAdminNotes: string | null;
+
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── API ──
