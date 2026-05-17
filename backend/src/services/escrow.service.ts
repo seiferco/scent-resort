@@ -135,11 +135,31 @@ export async function processStaleOrders() {
 // ── Run All Cron Tasks ──
 
 export async function runEscrowCron() {
-  const [releases, deliveries, stale] = await Promise.all([
-    processEscrowReleases(),
-    processAutoDeliveries(),
-    processStaleOrders(),
-  ]);
+  const results: Record<string, any> = {};
 
-  return { ...releases, ...deliveries, ...stale };
+  try {
+    const releases = await processEscrowReleases();
+    Object.assign(results, releases);
+  } catch (err) {
+    console.error('processEscrowReleases failed:', err);
+    results.escrowError = String(err);
+  }
+
+  try {
+    const deliveries = await processAutoDeliveries();
+    Object.assign(results, deliveries);
+  } catch (err) {
+    console.error('processAutoDeliveries failed:', err);
+    results.deliveryError = String(err);
+  }
+
+  try {
+    const stale = await processStaleOrders();
+    Object.assign(results, stale);
+  } catch (err) {
+    console.error('processStaleOrders failed:', err);
+    results.staleError = String(err);
+  }
+
+  return results;
 }
