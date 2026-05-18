@@ -21,7 +21,7 @@ const memoryStorage = multer.memoryStorage();
 
 const uploadAvatar = multer({
   storage: memoryStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 4 * 1024 * 1024 },
   fileFilter: imageFilter,
 });
 
@@ -50,7 +50,7 @@ async function uploadToFirebase(file: Express.Multer.File, destination: string):
 function handleMulterError(err: unknown, _req: Request, res: Response, next: NextFunction) {
   if (err instanceof MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      res.status(400).json({ error: 'file_too_large', message: 'File exceeds size limit' });
+      res.status(400).json({ error: 'file_too_large', message: 'File is too large. Maximum size is 4 MB.' });
       return;
     }
     if (err.code === 'LIMIT_UNEXPECTED_FILE') {

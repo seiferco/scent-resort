@@ -108,6 +108,18 @@ export function Header() {
                       </Link>
                     )}
                     <Link
+                      href="/settings/payments"
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-2 text-xs font-medium uppercase tracking-[0.15em] transition-colors',
+                        isActive('/settings/payments')
+                          ? 'text-accent'
+                          : 'text-foreground-muted hover:text-foreground',
+                      )}
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Payments
+                    </Link>
+                    <Link
                       href="/profile"
                       className="flex items-center gap-2 px-2 py-1.5 hover:opacity-70 transition-opacity"
                     >

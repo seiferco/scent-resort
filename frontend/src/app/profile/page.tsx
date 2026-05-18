@@ -41,6 +41,11 @@ function ProfileForm() {
 
   async function handlePhotoUpload(file: File) {
     if (!user) return;
+    const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+    if (file.size > MAX_SIZE) {
+      setError(`Image is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is 4 MB.`);
+      return;
+    }
     try {
       const { url } = await api.uploadFile<{ url: string }>('/upload/avatar', file, 'file');
       await api.put('/auth/profile', { photoURL: url });

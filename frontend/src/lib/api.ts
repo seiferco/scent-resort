@@ -50,6 +50,9 @@ export const api = {
       headers: { ...authHeaders },
       body: formData,
     });
+    if (res.status === 413) {
+      throw new Error('File is too large. Maximum size is 4 MB.');
+    }
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || data.error || 'Upload failed');
     return data as T;
@@ -64,6 +67,9 @@ export const api = {
       headers: { ...authHeaders },
       body: formData,
     });
+    if (res.status === 413) {
+      throw new Error('Files are too large. Maximum size is 4 MB per file.');
+    }
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || data.error || 'Upload failed');
     return data as T;
