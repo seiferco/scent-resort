@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Plus, MessageCircle, Package, TrendingUp } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
+import { getFirebaseAuth } from '@/lib/firebase';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { api } from '@/lib/api';
@@ -24,6 +27,7 @@ function DashboardContent() {
   const { user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -34,6 +38,24 @@ function DashboardContent() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // Fetch unread conversation count
+    const db = getFirestore(getFirebaseAuth().app);
+    const q = query(
+      collection(db, 'conversations'),
+      where('participantIds', 'array-contains', user.uid),
+    );
+    getDocs(q)
+      .then((snapshot) => {
+        let count = 0;
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          const isBuyer = user.uid === data.buyerId;
+          if (isBuyer ? data.buyerUnread : data.sellerUnread) count++;
+        });
+        setUnreadCount(count);
+      })
+      .catch(console.error);
   }, [user]);
 
   if (!user) return null;
@@ -79,7 +101,7 @@ function DashboardContent() {
         {[
           { label: 'Active', value: activeCount, icon: Package, href: '' },
           { label: 'Sold', value: soldCount, icon: TrendingUp, href: '' },
-          { label: 'Messages', value: '--', icon: MessageCircle, href: '/messages' },
+          { label: 'Unread', value: unreadCount ?? '--', icon: MessageCircle, href: '/messages' },
         ].map((stat) => {
           const content = (
             <>
