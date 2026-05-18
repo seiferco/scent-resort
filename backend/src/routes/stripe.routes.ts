@@ -33,9 +33,10 @@ router.post('/connect/onboard', async (req: Request, res: Response) => {
     const accountLink = await createAccountLink(accountId, returnUrl, refreshUrl);
 
     res.json({ url: accountLink.url });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Stripe onboard error:', err);
-    res.status(500).json({ error: 'server_error', message: 'Failed to start onboarding' });
+    const detail = err?.message || 'Unknown error';
+    res.status(500).json({ error: 'server_error', message: `Failed to start onboarding: ${detail}` });
   }
 });
 
