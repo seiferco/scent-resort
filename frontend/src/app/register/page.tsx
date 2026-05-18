@@ -9,6 +9,22 @@ import { GradientBlobs } from '@/components/ui/GradientBlobs';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
+function getAuthError(err: any): string {
+  const code = err?.code || '';
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/weak-password':
+      return 'Password is too weak. Please use at least 8 characters.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please try again later.';
+    default:
+      return 'Something went wrong. Please try again.';
+  }
+}
+
 export default function RegisterPage() {
   const { signUp, signInWithGoogle, user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -42,7 +58,7 @@ export default function RegisterPage() {
       await signUp(email, password);
       router.push('/listings');
     } catch (err: any) {
-      setError(err.message || 'Failed to create account');
+      setError(getAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -53,7 +69,7 @@ export default function RegisterPage() {
       await signInWithGoogle();
       router.push('/listings');
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
+      setError(getAuthError(err));
     }
   }
 

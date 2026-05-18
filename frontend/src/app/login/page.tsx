@@ -9,13 +9,33 @@ import { GradientBlobs } from '@/components/ui/GradientBlobs';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
+function getAuthError(err: any): string {
+  const code = err?.code || '';
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Invalid email or password.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    default:
+      return 'Something went wrong. Please try again.';
+  }
+}
+
 export default function LoginPage() {
-  const { signIn, signInWithGoogle, user, loading: authLoading } = useAuth();
+  const { signIn, signInWithGoogle, resetPassword, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -31,7 +51,7 @@ export default function LoginPage() {
       await signIn(email, password);
       router.push('/listings');
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+      setError(getAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -42,7 +62,7 @@ export default function LoginPage() {
       await signInWithGoogle();
       router.push('/listings');
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
+      setError(getAuthError(err));
     }
   }
 
@@ -100,15 +120,47 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
             />
-            <Input
-              id="password"
-              type="password"
-              label="Password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
-            />
+            <div>
+              <Input
+                id="password"
+                type="password"
+                label="Password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your password"
+              />
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={async () => {
+                  if (!email.trim()) {
+                    setError('Enter your email above, then click forgot password.');
+                    return;
+                  }
+                  setResetting(true);
+                  setError('');
+                  try {
+                    await resetPassword(email);
+                    setResetSent(true);
+                  } catch {
+                    setError('Could not send reset email. Please check your email address.');
+                  } finally {
+                    setResetting(false);
+                  }
+                }}
+                className="mt-2 text-xs font-medium text-accent hover:opacity-70 transition-opacity"
+              >
+                {resetting ? 'Sending...' : 'Forgot password?'}
+              </button>
+            </div>
+
+            {resetSent && (
+              <div className="border border-foreground p-3 text-sm text-foreground font-medium">
+                Password reset email sent. Check your inbox.
+              </div>
+            )}
+
             <Button type="submit" loading={loading} className="w-full">
               Sign In
             </Button>
