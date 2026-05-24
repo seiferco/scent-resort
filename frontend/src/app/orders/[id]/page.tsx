@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ReviewForm } from '@/components/reviews/ReviewForm';
 import { formatPrice } from '@/lib/utils';
 import type { Order, OrderStatus } from '@scentresort/shared';
 
@@ -52,6 +53,9 @@ function OrderDetailContent() {
   // Ship form
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingCarrier, setTrackingCarrier] = useState('');
+
+  // Review
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   // Dispute form
   const [showDispute, setShowDispute] = useState(false);
@@ -339,6 +343,26 @@ function OrderDetailContent() {
             </div>
           )}
         </div>
+
+        {/* Leave a Review (buyer, completed orders) */}
+        {isBuyer && order.status === 'completed' && (
+          <div className="mt-6">
+            {reviewSubmitted ? (
+              <div className="border border-border p-5 text-center">
+                <CheckCircle className="h-6 w-6 text-accent mx-auto mb-2" />
+                <p className="text-sm font-medium text-foreground">Thank you for your review!</p>
+                <p className="text-xs text-foreground-secondary mt-1">
+                  Your feedback helps the community.
+                </p>
+              </div>
+            ) : (
+              <ReviewForm
+                sellerId={order.sellerId}
+                onReviewAdded={() => setReviewSubmitted(true)}
+              />
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );

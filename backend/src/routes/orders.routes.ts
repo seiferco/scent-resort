@@ -1,7 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { requireAuth, requireVerifiedEmail, AuthenticatedRequest } from '../middleware/auth';
 import { db } from '../config/firebase';
 import { getParam } from '../types';
+import {
+  sendShippedNotification,
+  sendDeliveryConfirmed,
+  sendDisputeOpened,
+  sendRefundIssued,
+} from '../services/email.service';
 import {
   createOrder,
   cancelOrder,
@@ -16,7 +22,7 @@ const router = Router();
 router.use(requireAuth);
 
 // POST /orders/checkout — Create order + PaymentIntent for a listing
-router.post('/checkout', async (req: Request, res: Response) => {
+router.post('/checkout', requireVerifiedEmail, async (req: Request, res: Response) => {
   try {
     const buyer = (req as AuthenticatedRequest).user;
     const { listingId } = req.body;
@@ -113,6 +119,19 @@ router.post('/:id/ship', async (req: Request, res: Response) => {
     }
 
     await markShipped(orderId, user.uid, trackingNumber.trim(), trackingCarrier.trim());
+
+    // Send shipped email to buyer
+    const shippedOrder = await getOrderById(orderId);
+    if (shippedOrder) {
+      sendShippedNotification({
+        id: orderId,
+        listingTitle: (shippedOrder as any).listingTitle,
+        buyerId: (shippedOrder as any).buyerId,
+        trackingNumber: trackingNumber.trim(),
+        trackingCarrier: trackingCarrier.trim(),
+      });
+    }
+
     res.json({ message: 'Order marked as shipped' });
   } catch (err: any) {
     console.error('Ship error:', err);
@@ -126,6 +145,18 @@ router.post('/:id/confirm-delivery', async (req: Request, res: Response) => {
     const user = (req as AuthenticatedRequest).user;
     const orderId = getParam(req, 'id');
     await confirmDelivery(orderId, user.uid);
+
+    // Send delivery confirmed email to seller
+    const deliveredOrder = await getOrderById(orderId);
+    if (deliveredOrder) {
+      sendDeliveryConfirmed({
+        id: orderId,
+        listingTitle: (deliveredOrder as any).listingTitle,
+        sellerId: (deliveredOrder as any).sellerId,
+        sellerPayout: (deliveredOrder as any).sellerPayout,
+      });
+    }
+
     res.json({ message: 'Delivery confirmed. Escrow window started.' });
   } catch (err: any) {
     console.error('Confirm delivery error:', err);
@@ -146,6 +177,19 @@ router.post('/:id/dispute', async (req: Request, res: Response) => {
     }
 
     await openDispute(orderId, user.uid, reason.trim(), description.trim());
+
+    // Send dispute emails to both parties
+    const disputedOrder = await getOrderById(orderId);
+    if (disputedOrder) {
+      sendDisputeOpened({
+        id: orderId,
+        listingTitle: (disputedOrder as any).listingTitle,
+        buyerId: (disputedOrder as any).buyerId,
+        sellerId: (disputedOrder as any).sellerId,
+        disputeReason: reason.trim(),
+      });
+    }
+
     res.json({ message: 'Dispute opened. Funds are frozen pending review.' });
   } catch (err: any) {
     console.error('Dispute error:', err);
@@ -159,6 +203,18 @@ router.post('/:id/cancel', async (req: Request, res: Response) => {
     const user = (req as AuthenticatedRequest).user;
     const orderId = getParam(req, 'id');
     await cancelOrder(orderId, user.uid);
+
+    // Send refund email to buyer
+    const cancelledOrder = await getOrderById(orderId);
+    if (cancelledOrder) {
+      sendRefundIssued({
+        id: orderId,
+        listingTitle: (cancelledOrder as any).listingTitle,
+        buyerId: (cancelledOrder as any).buyerId,
+        amount: (cancelledOrder as any).amount,
+      });
+    }
+
     res.json({ message: 'Order cancelled and refunded' });
   } catch (err: any) {
     console.error('Cancel error:', err);

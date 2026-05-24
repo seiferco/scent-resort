@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 
 export const metadata: Metadata = {
   title: "SCENTRESORT — Authentic Luxury Fragrance Marketplace",
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
         <AuthProvider>
           <Header />
+          <EmailVerificationBanner />
           <main className="flex-1">{children}</main>
           <Footer />
         </AuthProvider>

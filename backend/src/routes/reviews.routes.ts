@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { requireAuth, requireVerifiedEmail, AuthenticatedRequest } from '../middleware/auth';
 import { db, admin } from '../config/firebase';
 import { getParam } from '../types';
 
 const router = Router();
 
 // POST /reviews — Create a review for a seller
-router.post('/', requireAuth, async (req: Request, res: Response) => {
+router.post('/', requireAuth, requireVerifiedEmail, async (req: Request, res: Response) => {
   try {
     const user = (req as AuthenticatedRequest).user;
     const { sellerId, rating, comment } = req.body;

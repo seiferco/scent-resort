@@ -48,7 +48,9 @@ export function Footer() {
             <h3 className="text-xs font-bold text-background uppercase tracking-[0.2em] mb-5">Community</h3>
             <ul className="space-y-3">
               <li><Link href="/safety" className="text-sm text-background/60 hover:text-accent transition-colors">Safety & Trust</Link></li>
-              <li><Link href="/listings" className="text-sm text-background/60 hover:text-accent transition-colors">Report a Listing</Link></li>
+              <li><Link href="/terms" className="text-sm text-background/60 hover:text-accent transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="text-sm text-background/60 hover:text-accent transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/refund-policy" className="text-sm text-background/60 hover:text-accent transition-colors">Refund Policy</Link></li>
               <li><a href="mailto:coleseifert@icloud.com" className="text-sm text-background/60 hover:text-accent transition-colors">Contact Us</a></li>
             </ul>
           </div>

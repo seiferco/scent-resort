@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { requireAuth, requireVerifiedEmail, AuthenticatedRequest } from '../middleware/auth';
 import { db } from '../config/firebase';
 import { admin } from '../config/firebase';
 import * as moderationService from '../services/moderation.service';
@@ -78,7 +78,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /listings — Create listing (any logged-in user)
-router.post('/', requireAuth, async (req: Request, res: Response) => {
+router.post('/', requireAuth, requireVerifiedEmail, async (req: Request, res: Response) => {
   try {
     const parsed = createListingSchema.safeParse(req.body);
     if (!parsed.success) {

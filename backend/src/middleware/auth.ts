@@ -47,6 +47,31 @@ export async function requireAuth(
   }
 }
 
+// Middleware that requires email verification (must come after requireAuth)
+export async function requireVerifiedEmail(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'unauthorized', message: 'Missing authorization header' });
+    return;
+  }
+
+  const token = header.split('Bearer ')[1];
+  try {
+    const decoded = await auth.verifyIdToken(token);
+    if (!decoded.email_verified) {
+      res.status(403).json({ error: 'email_not_verified', message: 'Please verify your email address before performing this action' });
+      return;
+    }
+    next();
+  } catch {
+    res.status(401).json({ error: 'unauthorized', message: 'Invalid or expired token' });
+  }
+}
+
 // Lighter middleware that only verifies the Firebase token (no Firestore doc required)
 // Used for the /auth/register endpoint where the doc doesn't exist yet
 export async function requireToken(

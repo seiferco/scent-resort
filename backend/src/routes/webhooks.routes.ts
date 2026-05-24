@@ -4,6 +4,7 @@ import { constructWebhookEvent } from '../services/stripe.service';
 import { confirmPayment } from '../services/order.service';
 import { syncAccountStatus } from '../services/stripe.service';
 import { db, admin } from '../config/firebase';
+import { sendOrderConfirmation } from '../services/email.service';
 
 const router = Router();
 
@@ -45,6 +46,19 @@ router.post('/stripe', async (req: Request, res: Response) => {
 
         if (orderId && chargeId) {
           await confirmPayment(orderId, chargeId);
+
+          // Send order confirmation email
+          const orderSnap = await db.collection('orders').doc(orderId).get();
+          if (orderSnap.exists) {
+            const orderData = orderSnap.data()!;
+            sendOrderConfirmation({
+              id: orderId,
+              listingTitle: orderData.listingTitle,
+              amount: orderData.amount,
+              buyerId: orderData.buyerId,
+              sellerDisplayName: orderData.sellerDisplayName,
+            });
+          }
         }
         break;
       }

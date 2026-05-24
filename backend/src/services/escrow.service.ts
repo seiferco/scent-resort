@@ -6,6 +6,7 @@ import {
   SELLER_SHIP_DEADLINE_DAYS,
 } from '@scentresort/shared';
 import { createRefund } from './stripe.service';
+import { sendEscrowReleased, sendStaleCancelledNotification } from './email.service';
 
 // ── Process Escrow Releases ──
 // Called by cron. Finds delivered orders past the escrow window and releases funds.
@@ -47,6 +48,13 @@ export async function processEscrowReleases() {
         stripeTransferId: transfer.id,
         completedAt: now.toISOString(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      sendEscrowReleased({
+        id: doc.id,
+        listingTitle: order.listingTitle,
+        sellerId: order.sellerId,
+        sellerPayout: order.sellerPayout,
       });
 
       results.released++;
@@ -122,6 +130,13 @@ export async function processStaleOrders() {
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       await batch.commit();
+
+      sendStaleCancelledNotification({
+        id: doc.id,
+        listingTitle: order.listingTitle,
+        buyerId: order.buyerId,
+        amount: order.amount,
+      });
 
       count++;
     } catch (err) {

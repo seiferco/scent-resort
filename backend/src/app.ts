@@ -10,6 +10,15 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import * as Sentry from '@sentry/node';
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 0.1,
+  });
+}
 import authRoutes from './routes/auth.routes';
 import listingsRoutes from './routes/listings.routes';
 import conversationsRoutes from './routes/conversations.routes';
@@ -35,19 +44,46 @@ app.use(
   })
 );
 
-// Stripe webhooks need raw body — register BEFORE express.json()
+// Stripe webhooks need raw body — register BEFORE express.json() and rate limiters
 app.use('/api/v1/webhooks', webhooksRoutes);
 
 app.use(express.json());
 
+// Rate limiters
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'rate_limited', message: 'Too many requests, please try again later' },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'rate_limited', message: 'Too many attempts, please try again later' },
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'rate_limited', message: 'Too many requests, please try again later' },
+});
+
+app.use(globalLimiter);
+
 // Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/listings', listingsRoutes);
-app.use('/api/v1/conversations', conversationsRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
+app.use('/api/v1/listings', writeLimiter, listingsRoutes);
+app.use('/api/v1/conversations', writeLimiter, conversationsRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/users', usersRoutes);
-app.use('/api/v1/reviews', reviewsRoutes);
-app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/reviews', writeLimiter, reviewsRoutes);
+app.use('/api/v1/upload', writeLimiter, uploadRoutes);
 app.use('/api/v1/stripe', stripeRoutes);
 app.use('/api/v1/orders', ordersRoutes);
 
@@ -73,5 +109,10 @@ app.post('/api/v1/internal/cron/process-escrow', async (req, res) => {
     res.status(500).json({ error: 'server_error', message: 'Escrow cron failed' });
   }
 });
+
+// Sentry error handler (must be after all routes)
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 export default app;
