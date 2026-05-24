@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -18,6 +18,20 @@ import { CheckCircle, AlertTriangle } from 'lucide-react';
 type ActionMode = 'resetPassword' | 'verifyEmail' | null;
 
 export default function AuthActionPage() {
+  return (
+    <Suspense fallback={
+      <ActionLayout title="Loading..." subtitle="Please wait.">
+        <div className="h-1 bg-border overflow-hidden">
+          <div className="h-full bg-accent animate-pulse w-2/3" />
+        </div>
+      </ActionLayout>
+    }>
+      <AuthActionContent />
+    </Suspense>
+  );
+}
+
+function AuthActionContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
