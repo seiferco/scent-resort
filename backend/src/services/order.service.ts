@@ -118,12 +118,14 @@ export async function cancelOrder(orderId: string, userId: string) {
     throw new Error('Not authorized');
   }
 
-  if (order.status !== 'paid') {
+  if (order.status !== 'paid' && order.status !== 'pending_payment') {
     throw new Error('Order can only be cancelled before shipment');
   }
 
-  // Refund via Stripe
-  await createRefund(order.stripePaymentIntentId);
+  // Only refund if payment was completed
+  if (order.status === 'paid') {
+    await createRefund(order.stripePaymentIntentId);
+  }
 
   const batch = db.batch();
   batch.update(orderRef, {

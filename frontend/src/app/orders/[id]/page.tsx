@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -12,6 +12,8 @@ import {
   Clock,
   ChevronLeft,
   XCircle,
+  MessageCircle,
+  CreditCard,
 } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -44,6 +46,7 @@ const fadeUp = {
 
 function OrderDetailContent() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,13 +186,36 @@ function OrderDetailContent() {
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="border border-border p-4">
             <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-[0.2em]">Buyer</p>
-            <p className="text-sm font-medium text-foreground mt-1">{order.buyerDisplayName}</p>
+            <Link href={`/users/${order.buyerId}`} className="text-sm font-medium text-accent hover:opacity-70 transition-opacity mt-1 inline-block">
+              {order.buyerDisplayName}
+            </Link>
           </div>
           <div className="border border-border p-4">
             <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-[0.2em]">Seller</p>
-            <p className="text-sm font-medium text-foreground mt-1">{order.sellerDisplayName}</p>
+            <Link href={`/users/${order.sellerId}`} className="text-sm font-medium text-accent hover:opacity-70 transition-opacity mt-1 inline-block">
+              {order.sellerDisplayName}
+            </Link>
           </div>
         </div>
+
+        {/* Message Button */}
+        {order.status !== 'cancelled' && order.status !== 'refunded' && (
+          <Button
+            variant="secondary"
+            className="mt-3 w-full gap-2"
+            onClick={async () => {
+              try {
+                const res = await api.post<{ id: string }>('/conversations', { listingId: order.listingId });
+                router.push(`/messages/${res.id}`);
+              } catch {
+                setError('Failed to open conversation');
+              }
+            }}
+          >
+            <MessageCircle className="h-4 w-4" />
+            Message {isBuyer ? 'Seller' : 'Buyer'}
+          </Button>
+        )}
 
         {/* Tracking Info */}
         {order.trackingNumber && (
@@ -203,6 +229,17 @@ function OrderDetailContent() {
 
         {/* Actions */}
         <div className="mt-6 space-y-3">
+          {/* Buyer: Complete Payment */}
+          {isBuyer && order.status === 'pending_payment' && (
+            <Button
+              className="w-full gap-2"
+              onClick={() => router.push(`/checkout/${order.listingId}`)}
+            >
+              <CreditCard className="h-4 w-4" />
+              Complete Payment
+            </Button>
+          )}
+
           {/* Seller: Mark as Shipped */}
           {isSeller && order.status === 'paid' && (
             <div className="border border-border p-5 space-y-4">
@@ -314,7 +351,7 @@ function OrderDetailContent() {
           )}
 
           {/* Cancel (buyer or seller, before shipment) */}
-          {(isBuyer || isSeller) && order.status === 'paid' && (
+          {(isBuyer || isSeller) && (order.status === 'paid' || order.status === 'pending_payment') && (
             <Button
               variant="secondary"
               className="w-full gap-2 text-red-500 hover:text-red-400"
