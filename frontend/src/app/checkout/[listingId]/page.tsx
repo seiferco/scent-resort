@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { ShieldCheck, Lock } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { api } from '@/lib/api';
 import stripePromise from '@/lib/stripe';
 import { Button } from '@/components/ui/Button';
@@ -80,10 +81,13 @@ function PaymentForm({ orderId, amount }: { orderId: string; amount: number }) {
 function CheckoutContent() {
   const { listingId } = useParams<{ listingId: string }>();
   const router = useRouter();
+  const { resendVerificationEmail } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
   const [checkout, setCheckout] = useState<CheckoutData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -117,6 +121,8 @@ function CheckoutContent() {
     );
   }
 
+  const isEmailError = error.toLowerCase().includes('verify your email');
+
   if (error || !listing || !checkout) {
     return (
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-12 text-center">
@@ -124,6 +130,31 @@ function CheckoutContent() {
           Checkout Error
         </h1>
         <p className="mt-4 text-sm text-foreground-secondary">{error || 'Something went wrong'}</p>
+        {isEmailError && (
+          <div className="mt-4">
+            {verificationSent ? (
+              <p className="text-sm text-accent font-medium">Verification email sent! Check your inbox.</p>
+            ) : (
+              <button
+                onClick={async () => {
+                  setSendingVerification(true);
+                  try {
+                    await resendVerificationEmail();
+                    setVerificationSent(true);
+                  } catch {
+                    // silently fail
+                  } finally {
+                    setSendingVerification(false);
+                  }
+                }}
+                disabled={sendingVerification}
+                className="text-sm font-bold text-accent hover:opacity-70 transition-opacity"
+              >
+                {sendingVerification ? 'Sending...' : 'Resend verification email'}
+              </button>
+            )}
+          </div>
+        )}
         <Button variant="secondary" className="mt-6" onClick={() => router.push('/listings')}>
           Back to Listings
         </Button>
