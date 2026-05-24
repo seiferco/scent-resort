@@ -29,16 +29,22 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      api.get<{ user: PublicUser }>(`/users/${id}`),
-      api.get<{ listings: Listing[] }>(`/users/${id}/listings`),
-    ])
-      .then(([userData, listingsData]) => {
+    async function load() {
+      try {
+        const userData = await api.get<{ user: PublicUser }>(`/users/${id}`);
         setProfile(userData.user);
+      } catch (err) {
+        console.error('Failed to load user profile:', err);
+      }
+      try {
+        const listingsData = await api.get<{ listings: Listing[] }>(`/users/${id}/listings`);
         setListings(listingsData.listings);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error('Failed to load user listings:', err);
+      }
+      setLoading(false);
+    }
+    load();
   }, [id]);
 
   if (loading) {
@@ -89,7 +95,7 @@ export default function UserProfilePage() {
               )}
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
-                Member since {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                Member since {new Date(typeof profile.createdAt === 'object' && '_seconds' in (profile.createdAt as any) ? (profile.createdAt as any)._seconds * 1000 : profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </span>
               <span className="flex items-center gap-1">
                 <Package className="h-3.5 w-3.5" />
