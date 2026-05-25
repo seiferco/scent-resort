@@ -51,7 +51,7 @@ export function Footer() {
               <li><Link href="/terms" className="text-sm text-background/60 hover:text-accent transition-colors">Terms of Service</Link></li>
               <li><Link href="/privacy" className="text-sm text-background/60 hover:text-accent transition-colors">Privacy Policy</Link></li>
               <li><Link href="/refund-policy" className="text-sm text-background/60 hover:text-accent transition-colors">Refund Policy</Link></li>
-              <li><a href="mailto:coleseifert@icloud.com" className="text-sm text-background/60 hover:text-accent transition-colors">Contact Us</a></li>
+              <li><a href="mailto:scentresort@icloud.com" className="text-sm text-background/60 hover:text-accent transition-colors">Contact Us</a></li>
             </ul>
           </div>
         </div>

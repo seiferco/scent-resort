@@ -87,8 +87,8 @@ export default function RefundPolicyPage() {
           <h2 className="font-display text-lg font-bold text-foreground uppercase tracking-[0.05em]">Contact Us</h2>
           <p className="mt-2 text-foreground-secondary leading-relaxed">
             If you have questions about a refund, need help with a dispute, or want to understand your options before taking action, reach out to us at{' '}
-            <a href="mailto:coleseifert@icloud.com" className="font-bold text-accent hover:opacity-70 transition-opacity">
-              coleseifert@icloud.com
+            <a href="mailto:scentresort@icloud.com" className="font-bold text-accent hover:opacity-70 transition-opacity">
+              scentresort@icloud.com
             </a>
             . We&apos;re here to help.
           </p>

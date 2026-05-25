@@ -75,7 +75,7 @@ export default function SafetyPage() {
       <div className="mt-12 text-center">
         <p className="text-foreground-secondary">
           Have a concern?{' '}
-          <a href="mailto:coleseifert@icloud.com" className="font-bold text-accent hover:opacity-70 transition-opacity">
+          <a href="mailto:scentresort@icloud.com" className="font-bold text-accent hover:opacity-70 transition-opacity">
             Contact us
           </a>
         </p>
