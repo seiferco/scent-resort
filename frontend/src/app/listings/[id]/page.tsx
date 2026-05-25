@@ -223,7 +223,7 @@ export default function ListingDetailPage() {
             <div className="space-y-2">
               {seller?.stripeAccountStatus === 'active' ? (
                 <>
-                  {myOffer?.status === 'accepted' ? (
+                  {myOffer?.status === 'accepted' && !myOffer.orderId ? (
                     <>
                       <div className="border border-accent/30 bg-accent/5 p-3 flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-accent flex-shrink-0" />
@@ -236,6 +236,13 @@ export default function ListingDetailPage() {
                         </Button>
                       </Link>
                     </>
+                  ) : myOffer?.status === 'accepted' && myOffer.orderId ? (
+                    <Link href={`/orders/${myOffer.orderId}`}>
+                      <Button variant="secondary" size="lg" className="w-full gap-2">
+                        <ShoppingBag className="h-4 w-4" />
+                        View Order
+                      </Button>
+                    </Link>
                   ) : myOffer?.status === 'pending' ? (
                     <>
                       <div className="border border-border bg-border/10 p-3 flex items-center gap-2">

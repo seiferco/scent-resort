@@ -178,12 +178,23 @@ function OffersContent() {
                       </div>
                     )}
 
-                    {offer.status === 'accepted' && tab === 'buyer' && (
+                    {offer.status === 'accepted' && tab === 'buyer' && !offer.orderId && (
                       <div className="mt-3">
                         <Link href={`/checkout/${offer.listingId}`}>
                           <Button size="sm" className="w-full gap-1">
                             <ShoppingBag className="h-3.5 w-3.5" />
                             Proceed to Checkout
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+
+                    {offer.status === 'accepted' && offer.orderId && (
+                      <div className="mt-3">
+                        <Link href={`/orders/${offer.orderId}`}>
+                          <Button variant="secondary" size="sm" className="w-full gap-1">
+                            <ShoppingBag className="h-3.5 w-3.5" />
+                            View Order
                           </Button>
                         </Link>
                       </div>
