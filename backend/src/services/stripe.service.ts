@@ -15,6 +15,7 @@ export async function createConnectAccount(uid: string, email: string) {
     country: 'US',
     email,
     capabilities: {
+      card_payments: { requested: true },
       transfers: { requested: true },
     },
     metadata: { firebaseUid: uid },
