@@ -47,6 +47,34 @@ export async function requireAuth(
   }
 }
 
+// Optional auth — populates req.user if a valid token is present, but doesn't block
+export async function optionalAuth(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    next();
+    return;
+  }
+
+  const token = header.split('Bearer ')[1];
+  try {
+    const decoded = await auth.verifyIdToken(token);
+    const userDoc = await db.collection('users').doc(decoded.uid).get();
+    if (userDoc.exists) {
+      const userData = userDoc.data() as User;
+      if (!userData.banned) {
+        (req as AuthenticatedRequest).user = { ...userData, uid: decoded.uid };
+      }
+    }
+  } catch {
+    // Invalid token — continue as unauthenticated
+  }
+  next();
+}
+
 // Middleware that requires email verification (must come after requireAuth)
 export async function requireVerifiedEmail(
   req: Request,

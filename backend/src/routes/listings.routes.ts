@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { requireAuth, requireVerifiedEmail, AuthenticatedRequest } from '../middleware/auth';
+import { requireAuth, optionalAuth, requireVerifiedEmail, AuthenticatedRequest } from '../middleware/auth';
 import { db } from '../config/firebase';
 import { admin } from '../config/firebase';
 import * as moderationService from '../services/moderation.service';
@@ -73,8 +73,8 @@ router.get('/mine', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// GET /listings/:id — Single listing detail (public, owners can see all statuses)
-router.get('/:id', async (req: Request, res: Response) => {
+// GET /listings/:id — Single listing detail (public, owners/admins can see all statuses)
+router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
   try {
     const doc = await db.collection('listings').doc(getParam(req, 'id')).get();
     if (!doc.exists) {
