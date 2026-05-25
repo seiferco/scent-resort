@@ -22,16 +22,18 @@ function AdminContent() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      api.get<{ listings: Listing[] }>('/admin/pending-listings'),
-      api.get<{ listings: Listing[] }>('/admin/flagged-listings'),
-    ])
-      .then(([pending, flagged]) => {
-        setPendingListings(pending.listings);
-        setFlaggedListings(flagged.listings);
-      })
+    let done = 0;
+    const checkDone = () => { done++; if (done === 2) setLoading(false); };
+
+    api.get<{ listings: Listing[] }>('/admin/pending-listings')
+      .then((res) => setPendingListings(res.listings))
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(checkDone);
+
+    api.get<{ listings: Listing[] }>('/admin/flagged-listings')
+      .then((res) => setFlaggedListings(res.listings))
+      .catch(console.error)
+      .finally(checkDone);
   }, []);
 
   async function handleApprove(listingId: string) {
