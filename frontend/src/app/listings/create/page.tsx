@@ -57,8 +57,8 @@ function CreateListingForm() {
       );
 
       const priceInCents = Math.round(parseFloat(form.price) * 100);
-      if (isNaN(priceInCents) || priceInCents <= 0) {
-        setError('Please enter a valid price');
+      if (isNaN(priceInCents) || priceInCents < 500) {
+        setError('Minimum price is $5.00');
         setLoading(false);
         return;
       }

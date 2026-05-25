@@ -31,6 +31,11 @@ router.post('/', requireVerifiedEmail, async (req: Request, res: Response) => {
       return;
     }
 
+    if (message && typeof message === 'string' && message.length > 500) {
+      res.status(400).json({ error: 'bad_request', message: 'Message must be 500 characters or less' });
+      return;
+    }
+
     // Fetch listing
     const listingSnap = await db.collection('listings').doc(listingId).get();
     if (!listingSnap.exists) {

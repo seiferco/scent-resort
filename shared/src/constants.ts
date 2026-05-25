@@ -3,6 +3,7 @@ export const FLAG_THRESHOLD = 3;
 
 // Listings
 export const MAX_LISTING_IMAGES = 5;
+export const MIN_LISTING_PRICE = 500; // cents — $5.00 minimum to cover Stripe fees
 export const SUPPORTED_CURRENCIES = ['usd'] as const;
 
 // Messages

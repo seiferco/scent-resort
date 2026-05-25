@@ -99,6 +99,10 @@ export async function createPaymentIntent(
   return { paymentIntent, platformFee };
 }
 
+export async function cancelPaymentIntent(paymentIntentId: string) {
+  return stripe.paymentIntents.cancel(paymentIntentId);
+}
+
 export async function createTransfer(
   amount: number,
   destinationAccountId: string,

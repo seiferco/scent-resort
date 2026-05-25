@@ -1,6 +1,7 @@
 import { db, admin } from '../config/firebase';
 import {
   createPaymentIntent,
+  cancelPaymentIntent,
   createTransfer,
   createRefund,
 } from './stripe.service';
@@ -27,6 +28,7 @@ export async function createOrder(listing: Listing, buyer: User) {
     sellerId: listing.sellerId,
   });
 
+  try {
   await db.runTransaction(async (tx) => {
     const listingSnap = await tx.get(listingRef);
     const listingData = listingSnap.data();
@@ -68,6 +70,10 @@ export async function createOrder(listing: Listing, buyer: User) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   });
+  } catch (err) {
+    await cancelPaymentIntent(paymentIntent.id).catch(() => {});
+    throw err;
+  }
 
   return {
     orderId: orderRef.id,

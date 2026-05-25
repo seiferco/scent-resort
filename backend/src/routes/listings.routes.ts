@@ -4,7 +4,7 @@ import { requireAuth, requireVerifiedEmail, AuthenticatedRequest } from '../midd
 import { db } from '../config/firebase';
 import { admin } from '../config/firebase';
 import * as moderationService from '../services/moderation.service';
-import { MAX_LISTING_IMAGES, type ReportReason } from '@scentresort/shared';
+import { MAX_LISTING_IMAGES, MIN_LISTING_PRICE, type ReportReason } from '@scentresort/shared';
 import { getParam } from '../types';
 
 const router = Router();
@@ -16,7 +16,7 @@ const createListingSchema = z.object({
   fragranceName: z.string().min(1).max(200),
   size: z.string().min(1).max(50),
   condition: z.enum(['new_sealed', 'new_open_box', 'lightly_used', 'partially_used']),
-  price: z.number().int().positive(),
+  price: z.number().int().min(MIN_LISTING_PRICE),
   currency: z.literal('usd'),
   images: z.array(z.string().url()).min(1).max(MAX_LISTING_IMAGES),
 });
@@ -124,8 +124,8 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    if (doc.data()!.status === 'sold') {
-      res.status(400).json({ error: 'bad_request', message: 'Cannot edit a sold listing' });
+    if (doc.data()!.status === 'sold' || doc.data()!.status === 'pending_sale') {
+      res.status(400).json({ error: 'bad_request', message: 'Cannot edit a listing that is sold or pending sale' });
       return;
     }
 

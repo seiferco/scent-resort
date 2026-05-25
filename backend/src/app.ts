@@ -85,8 +85,8 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/reviews', writeLimiter, reviewsRoutes);
 app.use('/api/v1/upload', writeLimiter, uploadRoutes);
-app.use('/api/v1/stripe', stripeRoutes);
-app.use('/api/v1/orders', ordersRoutes);
+app.use('/api/v1/stripe', writeLimiter, stripeRoutes);
+app.use('/api/v1/orders', writeLimiter, ordersRoutes);
 app.use('/api/v1/offers', writeLimiter, offersRoutes);
 
 // Health check
