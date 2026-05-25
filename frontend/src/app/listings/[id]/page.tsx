@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { MessageCircle, MapPin, CreditCard, Calendar, ChevronLeft, Pencil, Trash2, ShoppingBag } from 'lucide-react';
+import { MessageCircle, MapPin, CreditCard, Calendar, ChevronLeft, Pencil, Trash2, ShoppingBag, Send, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { ReportButton } from '@/components/listings/ReportButton';
@@ -14,7 +14,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatPrice, formatDate } from '@/lib/utils';
-import type { Listing } from '@scentresort/shared';
+import { Textarea } from '@/components/ui/Input';
+import type { Listing, Offer } from '@scentresort/shared';
 
 interface SellerProfile {
   uid: string;
@@ -39,6 +40,11 @@ export default function ListingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [myOffer, setMyOffer] = useState<Offer | null>(null);
+  const [offerLoading, setOfferLoading] = useState(false);
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const [offerMessage, setOfferMessage] = useState('');
+  const [offerSubmitting, setOfferSubmitting] = useState(false);
 
   useEffect(() => {
     api
@@ -51,6 +57,40 @@ export default function ListingDetailPage() {
       .catch(() => router.push('/listings'))
       .finally(() => setLoading(false));
   }, [id, router]);
+
+  // Fetch buyer's existing offer on this listing
+  useEffect(() => {
+    if (!user || !listing || user.uid === listing.sellerId) return;
+    api.get<{ offer: Offer | null }>(`/offers/listing/${id}/mine`)
+      .then((res) => setMyOffer(res.offer))
+      .catch(() => {});
+  }, [user, listing, id]);
+
+  async function handleSubmitOffer() {
+    setOfferSubmitting(true);
+    try {
+      await api.post('/offers', { listingId: id, message: offerMessage.trim() });
+      // Refresh offer status
+      const res = await api.get<{ offer: Offer | null }>(`/offers/listing/${id}/mine`);
+      setMyOffer(res.offer);
+      setShowOfferForm(false);
+      setOfferMessage('');
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit offer');
+    } finally {
+      setOfferSubmitting(false);
+    }
+  }
+
+  async function handleWithdrawOffer() {
+    if (!myOffer || !confirm('Withdraw your offer?')) return;
+    try {
+      await api.post(`/offers/${myOffer.id}/withdraw`);
+      setMyOffer(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to withdraw offer');
+    }
+  }
 
   async function handleMessageSeller() {
     if (!user) {
@@ -182,12 +222,71 @@ export default function ListingDetailPage() {
           {listing.status === 'active' && !isSeller && (
             <div className="space-y-2">
               {seller?.stripeAccountStatus === 'active' ? (
-                <Link href={`/checkout/${listing.id}`}>
-                  <Button size="lg" className="w-full gap-2">
-                    <ShoppingBag className="h-4 w-4" />
-                    Buy Now &mdash; {formatPrice(listing.price)}
-                  </Button>
-                </Link>
+                <>
+                  {myOffer?.status === 'accepted' ? (
+                    <>
+                      <div className="border border-accent/30 bg-accent/5 p-3 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-accent flex-shrink-0" />
+                        <p className="text-sm font-medium text-foreground">Offer accepted! Complete your purchase.</p>
+                      </div>
+                      <Link href={`/checkout/${listing.id}`}>
+                        <Button size="lg" className="w-full gap-2">
+                          <ShoppingBag className="h-4 w-4" />
+                          Proceed to Checkout &mdash; {formatPrice(listing.price)}
+                        </Button>
+                      </Link>
+                    </>
+                  ) : myOffer?.status === 'pending' ? (
+                    <>
+                      <div className="border border-border bg-border/10 p-3 flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-foreground-secondary flex-shrink-0" />
+                        <p className="text-sm text-foreground-secondary">Your offer is pending seller approval.</p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        className="w-full gap-2 text-red-500 hover:text-red-400"
+                        onClick={handleWithdrawOffer}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Withdraw Offer
+                      </Button>
+                    </>
+                  ) : showOfferForm ? (
+                    <div className="border border-border p-4 space-y-3">
+                      <h3 className="text-xs font-bold text-foreground uppercase tracking-[0.15em]">Make an Offer</h3>
+                      <p className="text-sm text-foreground-secondary">
+                        Price: <span className="font-bold text-foreground">{formatPrice(listing.price)}</span>
+                      </p>
+                      <Textarea
+                        id="offerMessage"
+                        label="Message (optional)"
+                        rows={3}
+                        value={offerMessage}
+                        onChange={(e) => setOfferMessage(e.target.value)}
+                        placeholder="Introduce yourself or ask a question..."
+                        maxLength={500}
+                      />
+                      <div className="flex gap-2">
+                        <Button variant="secondary" className="flex-1" onClick={() => setShowOfferForm(false)}>
+                          Cancel
+                        </Button>
+                        <Button className="flex-1 gap-2" loading={offerSubmitting} onClick={handleSubmitOffer}>
+                          <Send className="h-4 w-4" />
+                          Submit Offer
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button size="lg" className="w-full gap-2" onClick={() => {
+                      if (!user) { router.push('/login'); return; }
+                      setShowOfferForm(true);
+                    }}>
+                      <ShoppingBag className="h-4 w-4" />
+                      Make Offer &mdash; {formatPrice(listing.price)}
+                    </Button>
+                  )}
+                </>
               ) : (
                 <div className="border border-border py-3 text-center text-xs font-bold text-foreground-muted uppercase tracking-[0.15em]">
                   Seller has not set up payments yet
@@ -206,9 +305,9 @@ export default function ListingDetailPage() {
             </div>
           )}
 
-          {listing.status === 'sold' && (
+          {(listing.status === 'sold' || listing.status === 'pending_sale') && (
             <div className="border border-border py-3 text-center text-xs font-bold text-foreground-secondary uppercase tracking-[0.15em]">
-              This item has been sold
+              {listing.status === 'sold' ? 'This item has been sold' : 'This item is pending sale'}
             </div>
           )}
 

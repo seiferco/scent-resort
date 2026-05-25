@@ -96,9 +96,18 @@ function CheckoutContent() {
         const listingData = await api.get<Listing>(`/listings/${listingId}`);
         setListing(listingData);
 
-        // Create checkout session
+        // Verify buyer has an accepted offer
+        const offerRes = await api.get<{ offer: any }>(`/offers/listing/${listingId}/mine`);
+        if (!offerRes.offer || offerRes.offer.status !== 'accepted') {
+          setError('You need an accepted offer to proceed with checkout. Make an offer on the listing first.');
+          setLoading(false);
+          return;
+        }
+
+        // Create checkout session with offerId
         const checkoutData = await api.post<CheckoutData>('/orders/checkout', {
           listingId,
+          offerId: offerRes.offer.id,
         });
         setCheckout(checkoutData);
       } catch (err: any) {

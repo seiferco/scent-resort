@@ -28,6 +28,7 @@ import reviewsRoutes from './routes/reviews.routes';
 import uploadRoutes from './routes/upload.routes';
 import stripeRoutes from './routes/stripe.routes';
 import ordersRoutes from './routes/orders.routes';
+import offersRoutes from './routes/offers.routes';
 import webhooksRoutes from './routes/webhooks.routes';
 
 const app = express();
@@ -86,6 +87,7 @@ app.use('/api/v1/reviews', writeLimiter, reviewsRoutes);
 app.use('/api/v1/upload', writeLimiter, uploadRoutes);
 app.use('/api/v1/stripe', stripeRoutes);
 app.use('/api/v1/orders', ordersRoutes);
+app.use('/api/v1/offers', writeLimiter, offersRoutes);
 
 // Health check
 app.get('/api/v1/health', (_req, res) => {

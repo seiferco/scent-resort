@@ -31,11 +31,9 @@ export async function createOrder(listing: Listing, buyer: User) {
     const listingSnap = await tx.get(listingRef);
     const listingData = listingSnap.data();
 
-    if (!listingData || listingData.status !== 'active') {
+    if (!listingData || listingData.status !== 'pending_sale') {
       throw new Error('Listing is no longer available');
     }
-
-    tx.update(listingRef, { status: 'pending_sale', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
 
     tx.set(orderRef, {
       listingId: listing.id,

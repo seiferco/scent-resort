@@ -119,6 +119,30 @@ export interface Review {
   createdAt: string;
 }
 
+// ── Offer ──
+
+export type OfferStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'withdrawn';
+
+export interface Offer {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  listingImage: string;
+  buyerId: string;
+  buyerDisplayName: string;
+  sellerId: string;
+  sellerDisplayName: string;
+  amount: number;       // listing price at time of offer (cents)
+  currency: string;
+  message: string;      // optional buyer message
+  status: OfferStatus;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  orderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ── Order ──
 
 export type OrderStatus =

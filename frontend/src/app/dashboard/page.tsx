@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Plus, MessageCircle, Package, TrendingUp } from 'lucide-react';
+import { Plus, MessageCircle, Package, TrendingUp, Tag } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -28,6 +28,7 @@ function DashboardContent() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
+  const [pendingOffers, setPendingOffers] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -38,6 +39,13 @@ function DashboardContent() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // Fetch pending offers count (as seller)
+    api.get<{ offers: any[] }>('/offers?role=seller')
+      .then((res) => {
+        setPendingOffers(res.offers.filter((o) => o.status === 'pending').length);
+      })
+      .catch(console.error);
 
     // Fetch unread conversation count
     const db = getFirestore(getFirebaseAuth().app);
@@ -96,11 +104,12 @@ function DashboardContent() {
         initial="hidden"
         animate="visible"
         variants={fadeUp}
-        className="mt-8 grid grid-cols-3 gap-3 sm:gap-4"
+        className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
       >
         {[
           { label: 'Active', value: activeCount, icon: Package, href: '' },
           { label: 'Sold', value: soldCount, icon: TrendingUp, href: '' },
+          { label: 'Offers', value: pendingOffers ?? '--', icon: Tag, href: '/offers' },
           { label: 'Unread', value: unreadCount ?? '--', icon: MessageCircle, href: '/messages' },
         ].map((stat) => {
           const content = (

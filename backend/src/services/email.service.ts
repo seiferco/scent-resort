@@ -9,6 +9,9 @@ import {
   disputeOpenedSellerEmail,
   refundIssuedEmail,
   staleCancelledBuyerEmail,
+  newOfferEmail,
+  offerAcceptedEmail,
+  offerDeclinedEmail,
 } from '../templates/emails';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -84,5 +87,25 @@ export function sendRefundIssued(order: { id: string; listingTitle: string; buye
 export function sendStaleCancelledNotification(order: { id: string; listingTitle: string; buyerId: string; amount: number }) {
   getUserEmail(order.buyerId).then((email) => {
     if (email) send(email, staleCancelledBuyerEmail(order));
+  });
+}
+
+// ── Offer emails ──
+
+export function sendNewOfferNotification(offer: { listingTitle: string; buyerDisplayName: string; amount: number; sellerId: string }) {
+  getUserEmail(offer.sellerId).then((email) => {
+    if (email) send(email, newOfferEmail(offer));
+  });
+}
+
+export function sendOfferAccepted(offer: { listingTitle: string; listingId: string; amount: number; buyerId: string }) {
+  getUserEmail(offer.buyerId).then((email) => {
+    if (email) send(email, offerAcceptedEmail(offer));
+  });
+}
+
+export function sendOfferDeclined(offer: { listingTitle: string; buyerId: string }) {
+  getUserEmail(offer.buyerId).then((email) => {
+    if (email) send(email, offerDeclinedEmail(offer));
   });
 }

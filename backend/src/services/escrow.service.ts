@@ -7,6 +7,7 @@ import {
 } from '@scentresort/shared';
 import { createRefund } from './stripe.service';
 import { sendEscrowReleased, sendStaleCancelledNotification } from './email.service';
+import { expireStaleOffers } from './offer.service';
 
 // ── Process Escrow Releases ──
 // Called by cron. Finds delivered orders past the escrow window and releases funds.
@@ -174,6 +175,14 @@ export async function runEscrowCron() {
   } catch (err) {
     console.error('processStaleOrders failed:', err);
     results.staleError = String(err);
+  }
+
+  try {
+    const expired = await expireStaleOffers();
+    Object.assign(results, expired);
+  } catch (err) {
+    console.error('expireStaleOffers failed:', err);
+    results.offerExpiryError = String(err);
   }
 
   return results;

@@ -8,6 +8,10 @@ export const SUPPORTED_CURRENCIES = ['usd'] as const;
 // Messages
 export const MAX_MESSAGE_LENGTH = 5000;
 
+// Offers
+export const OFFER_EXPIRY_DAYS = 7;
+export const MAX_OFFER_MESSAGE_LENGTH = 500;
+
 // Payments
 export const PLATFORM_FEE_PERCENT = 10;
 export const ESCROW_WINDOW_HOURS = 48;

@@ -21,14 +21,35 @@ import {
 const router = Router();
 router.use(requireAuth);
 
-// POST /orders/checkout — Create order + PaymentIntent for a listing
+// POST /orders/checkout — Create order + PaymentIntent (requires accepted offer)
 router.post('/checkout', requireVerifiedEmail, async (req: Request, res: Response) => {
   try {
     const buyer = (req as AuthenticatedRequest).user;
-    const { listingId } = req.body;
+    const { listingId, offerId } = req.body;
 
-    if (!listingId) {
-      res.status(400).json({ error: 'bad_request', message: 'listingId is required' });
+    if (!listingId || !offerId) {
+      res.status(400).json({ error: 'bad_request', message: 'listingId and offerId are required' });
+      return;
+    }
+
+    // Validate the accepted offer
+    const offerSnap = await db.collection('offers').doc(offerId).get();
+    if (!offerSnap.exists) {
+      res.status(404).json({ error: 'not_found', message: 'Offer not found' });
+      return;
+    }
+    const offer = offerSnap.data()!;
+
+    if (offer.status !== 'accepted') {
+      res.status(400).json({ error: 'bad_request', message: 'Offer has not been accepted' });
+      return;
+    }
+    if (offer.buyerId !== buyer.uid) {
+      res.status(403).json({ error: 'forbidden', message: 'This offer does not belong to you' });
+      return;
+    }
+    if (offer.listingId !== listingId) {
+      res.status(400).json({ error: 'bad_request', message: 'Offer does not match listing' });
       return;
     }
 
@@ -41,7 +62,7 @@ router.post('/checkout', requireVerifiedEmail, async (req: Request, res: Respons
 
     const listing = { id: listingSnap.id, ...listingSnap.data() } as any;
 
-    if (listing.status !== 'active') {
+    if (listing.status !== 'pending_sale') {
       res.status(400).json({ error: 'bad_request', message: 'Listing is no longer available' });
       return;
     }
@@ -60,6 +81,11 @@ router.post('/checkout', requireVerifiedEmail, async (req: Request, res: Respons
     }
 
     const result = await createOrder(listing, buyer);
+
+    // Link order to offer
+    await db.collection('offers').doc(offerId).update({
+      orderId: result.orderId,
+    });
 
     res.status(201).json(result);
   } catch (err: any) {

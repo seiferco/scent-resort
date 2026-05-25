@@ -132,3 +132,33 @@ export function staleCancelledBuyerEmail(order: { id: string; listingTitle: stri
     `),
   };
 }
+
+export function newOfferEmail(offer: { listingTitle: string; buyerDisplayName: string; amount: number }) {
+  return {
+    subject: `New Offer — ${offer.listingTitle}`,
+    html: layout('You have a new offer!', `
+      <p style="color:#4A4A4A;font-size:14px;line-height:1.6;"><strong>${offer.buyerDisplayName}</strong> is interested in your listing <strong>${offer.listingTitle}</strong> at <strong>${formatCents(offer.amount)}</strong>.</p>
+      ${button('View Offers', `${FRONTEND_URL}/offers`)}
+    `),
+  };
+}
+
+export function offerAcceptedEmail(offer: { listingTitle: string; listingId: string; amount: number }) {
+  return {
+    subject: `Offer Approved — ${offer.listingTitle}`,
+    html: layout('Your offer has been approved!', `
+      <p style="color:#4A4A4A;font-size:14px;line-height:1.6;">Great news! The seller has approved your offer for <strong>${offer.listingTitle}</strong>. You can now complete your purchase.</p>
+      ${button('Complete Purchase', `${FRONTEND_URL}/checkout/${offer.listingId}`)}
+    `),
+  };
+}
+
+export function offerDeclinedEmail(offer: { listingTitle: string }) {
+  return {
+    subject: `Offer Update — ${offer.listingTitle}`,
+    html: layout('Offer update', `
+      <p style="color:#4A4A4A;font-size:14px;line-height:1.6;">Unfortunately, the seller did not accept your offer for <strong>${offer.listingTitle}</strong>. Don't worry — there are plenty of other fragrances available.</p>
+      ${button('Browse Fragrances', `${FRONTEND_URL}/listings`)}
+    `),
+  };
+}

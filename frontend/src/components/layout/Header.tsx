@@ -16,6 +16,7 @@ import {
   X,
   ShoppingBag,
   CreditCard,
+  Tag,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Avatar } from '@/components/ui/Avatar';
@@ -25,6 +26,7 @@ import { cn } from '@/lib/utils';
 const navLinks = [
   { href: '/listings', label: 'Browse', icon: Search },
   { href: '/listings/create', label: 'Sell', icon: Plus },
+  { href: '/offers', label: 'Offers', icon: Tag },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
