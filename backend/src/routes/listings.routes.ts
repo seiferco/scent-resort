@@ -55,7 +55,25 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /listings/:id — Single listing detail (public)
+// GET /listings/mine — Seller's own listings (all statuses)
+router.get('/mine', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as AuthenticatedRequest).user;
+    const snapshot = await db
+      .collection('listings')
+      .where('sellerId', '==', user.uid)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const listings = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json({ listings });
+  } catch (err) {
+    console.error('My listings error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to fetch your listings' });
+  }
+});
+
+// GET /listings/:id — Single listing detail (public, owners can see all statuses)
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const doc = await db.collection('listings').doc(getParam(req, 'id')).get();
@@ -65,7 +83,14 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
 
     const listing = doc.data()!;
-    if (listing.status !== 'active' && listing.status !== 'sold' && listing.status !== 'pending_sale') {
+    const publicStatuses = ['active', 'sold', 'pending_sale'];
+
+    // Allow owners to see their own listings regardless of status
+    const authReq = req as AuthenticatedRequest;
+    const isOwner = authReq.user && listing.sellerId === authReq.user.uid;
+    const isAdmin = authReq.user && authReq.user.role === 'admin';
+
+    if (!publicStatuses.includes(listing.status) && !isOwner && !isAdmin) {
       res.status(404).json({ error: 'not_found', message: 'Listing not found' });
       return;
     }
@@ -94,8 +119,9 @@ router.post('/', requireAuth, requireVerifiedEmail, async (req: Request, res: Re
       sellerId: user.uid,
       sellerDisplayName: user.displayName,
       ...data,
-      status: 'active',
+      status: 'pending_review',
       flagCount: 0,
+      rejectionReason: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });

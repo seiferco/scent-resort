@@ -31,10 +31,12 @@ export type ListingCondition =
   | 'partially_used';
 
 export type ListingStatus =
+  | 'pending_review'
   | 'active'
   | 'pending_sale'
   | 'sold'
   | 'under_review'
+  | 'rejected'
   | 'removed';
 
 export interface Listing {
@@ -52,6 +54,7 @@ export interface Listing {
   images: string[];
   status: ListingStatus;
   flagCount: number;
+  rejectionReason: string | null;
   createdAt: string;
   updatedAt: string;
 }

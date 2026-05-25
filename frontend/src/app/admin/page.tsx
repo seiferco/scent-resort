@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Shield, Flag, CheckCircle, Trash2, Ban } from 'lucide-react';
+import { Shield, Flag, CheckCircle, Trash2, Ban, Clock, XCircle, Eye } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/Badge';
@@ -13,16 +14,55 @@ import { formatPrice } from '@/lib/utils';
 import type { Listing } from '@scentresort/shared';
 
 function AdminContent() {
+  const [pendingListings, setPendingListings] = useState<Listing[]>([]);
   const [flaggedListings, setFlaggedListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    api
-      .get<{ listings: Listing[] }>('/admin/flagged-listings')
-      .then((res) => setFlaggedListings(res.listings))
+    Promise.all([
+      api.get<{ listings: Listing[] }>('/admin/pending-listings'),
+      api.get<{ listings: Listing[] }>('/admin/flagged-listings'),
+    ])
+      .then(([pending, flagged]) => {
+        setPendingListings(pending.listings);
+        setFlaggedListings(flagged.listings);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleApprove(listingId: string) {
+    setActionLoading(listingId);
+    try {
+      await api.post(`/admin/listings/${listingId}/approve`);
+      setPendingListings((prev) => prev.filter((l) => l.id !== listingId));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleReject(listingId: string) {
+    if (rejectReason.length < 5) {
+      alert('Please provide a reason (at least 5 characters).');
+      return;
+    }
+    setActionLoading(listingId);
+    try {
+      await api.post(`/admin/listings/${listingId}/reject`, { reason: rejectReason });
+      setPendingListings((prev) => prev.filter((l) => l.id !== listingId));
+      setRejectingId(null);
+      setRejectReason('');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   async function handleListingAction(listingId: string, action: 'reinstate' | 'remove') {
     try {
@@ -62,7 +102,14 @@ function AdminContent() {
         </div>
 
         {/* Stats */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="border border-border p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-4 w-4 text-accent" />
+              <span className="text-[10px] font-bold text-foreground-muted uppercase tracking-[0.2em]">Pending Review</span>
+            </div>
+            <p className="text-3xl font-display font-bold text-foreground">{pendingListings.length}</p>
+          </div>
           <div className="border border-border p-4">
             <div className="flex items-center gap-2 mb-1">
               <Flag className="h-4 w-4 text-accent" />
@@ -71,6 +118,115 @@ function AdminContent() {
             <p className="text-3xl font-display font-bold text-foreground">{flaggedListings.length}</p>
           </div>
         </div>
+
+        {/* Pending Review */}
+        <section className="mt-10">
+          <h2 className="font-display text-xl font-bold text-foreground uppercase tracking-[0.05em]">
+            Pending Review
+          </h2>
+
+          {loading ? (
+            <div className="mt-4 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-24" />
+              ))}
+            </div>
+          ) : pendingListings.length === 0 ? (
+            <EmptyState
+              icon={CheckCircle}
+              title="No pending listings"
+              description="All listings have been reviewed."
+              className="mt-4"
+            />
+          ) : (
+            <div className="mt-4 space-y-3">
+              {pendingListings.map((listing) => (
+                <div key={listing.id} className="border border-border p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      {listing.images[0] && (
+                        <img
+                          src={listing.images[0]}
+                          alt={listing.title}
+                          className="h-16 w-16 object-cover flex-shrink-0 border border-border"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-bold text-foreground truncate">{listing.title}</p>
+                        <p className="text-sm text-foreground-secondary mt-0.5">
+                          {listing.brand} &middot; {listing.fragranceName} &middot; {listing.size}
+                        </p>
+                        <p className="text-sm text-foreground-secondary mt-0.5">
+                          {formatPrice(listing.price)} &middot; by {listing.sellerDisplayName}
+                        </p>
+                        <p className="text-xs text-foreground-muted mt-1 line-clamp-2">
+                          {listing.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-shrink-0">
+                      <Link href={`/listings/${listing.id}`} target="_blank">
+                        <Button size="sm" variant="secondary" className="w-full gap-1.5">
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        onClick={() => handleApprove(listing.id)}
+                        loading={actionLoading === listing.id}
+                        className="gap-1.5"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Approve
+                      </Button>
+                      {rejectingId === listing.id ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="Reason for rejection..."
+                            className="w-full min-w-[200px] border border-border bg-background text-sm text-foreground p-2 resize-none h-20 focus:outline-none focus:border-foreground"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleReject(listing.id)}
+                              loading={actionLoading === listing.id}
+                              className="flex-1 gap-1.5"
+                            >
+                              Reject
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                              className="flex-1"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => setRejectingId(listing.id)}
+                          className="gap-1.5"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          Reject
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Flagged listings */}
         <section className="mt-10">

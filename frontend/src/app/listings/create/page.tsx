@@ -70,7 +70,7 @@ function CreateListingForm() {
         images: imageUrls,
       });
 
-      router.push(`/listings/${res.id}`);
+      router.push(`/dashboard?submitted=1`);
     } catch (err: any) {
       setError(err.message || 'Failed to create listing');
     } finally {

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/requireAdmin';
-import { db } from '../config/firebase';
+import { db, admin } from '../config/firebase';
 import * as moderationService from '../services/moderation.service';
 import { getDisputedOrders, resolveDispute } from '../services/order.service';
 import { getParam } from '../types';
@@ -10,6 +10,87 @@ import { getParam } from '../types';
 const router = Router();
 
 router.use(requireAuth, requireAdmin);
+
+// GET /admin/pending-listings — Listings awaiting review
+router.get('/pending-listings', async (_req: Request, res: Response) => {
+  try {
+    const snapshot = await db
+      .collection('listings')
+      .where('status', '==', 'pending_review')
+      .orderBy('createdAt', 'asc')
+      .get();
+
+    const listings = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json({ listings });
+  } catch (err) {
+    console.error('Pending listings error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to fetch pending listings' });
+  }
+});
+
+// POST /admin/listings/:id/approve — Approve a pending listing
+router.post('/listings/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const ref = db.collection('listings').doc(getParam(req, 'id'));
+    const doc = await ref.get();
+
+    if (!doc.exists) {
+      res.status(404).json({ error: 'not_found', message: 'Listing not found' });
+      return;
+    }
+
+    if (doc.data()!.status !== 'pending_review') {
+      res.status(400).json({ error: 'bad_request', message: 'Listing is not pending review' });
+      return;
+    }
+
+    await ref.update({
+      status: 'active',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: 'Listing approved' });
+  } catch (err) {
+    console.error('Approve listing error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to approve listing' });
+  }
+});
+
+// POST /admin/listings/:id/reject — Reject a pending listing with reason
+router.post('/listings/:id/reject', async (req: Request, res: Response) => {
+  try {
+    const schema = z.object({ reason: z.string().min(5).max(1000) });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'validation_error', message: 'A rejection reason (min 5 chars) is required' });
+      return;
+    }
+
+    const ref = db.collection('listings').doc(getParam(req, 'id'));
+    const doc = await ref.get();
+
+    if (!doc.exists) {
+      res.status(404).json({ error: 'not_found', message: 'Listing not found' });
+      return;
+    }
+
+    if (doc.data()!.status !== 'pending_review') {
+      res.status(400).json({ error: 'bad_request', message: 'Listing is not pending review' });
+      return;
+    }
+
+    await ref.update({
+      status: 'rejected',
+      rejectionReason: parsed.data.reason,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: 'Listing rejected' });
+  } catch (err) {
+    console.error('Reject listing error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to reject listing' });
+  }
+});
 
 // GET /admin/flagged-listings
 router.get('/flagged-listings', async (_req: Request, res: Response) => {

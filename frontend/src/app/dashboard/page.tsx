@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, MessageCircle, Package, TrendingUp, Tag } from 'lucide-react';
+import { Plus, MessageCircle, Package, TrendingUp, Tag, Clock } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -25,6 +26,8 @@ const fadeUp = {
 
 function DashboardContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const justSubmitted = searchParams.get('submitted') === '1';
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
@@ -33,9 +36,9 @@ function DashboardContent() {
   useEffect(() => {
     if (!user) return;
     api
-      .get<{ listings: Listing[] }>('/listings')
+      .get<{ listings: Listing[] }>('/listings/mine')
       .then((res) => {
-        setListings(res.listings.filter((l) => l.sellerId === user.uid));
+        setListings(res.listings);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -70,6 +73,7 @@ function DashboardContent() {
 
   const activeCount = listings.filter((l) => l.status === 'active').length;
   const soldCount = listings.filter((l) => l.status === 'sold').length;
+  const pendingReviewCount = listings.filter((l) => l.status === 'pending_review').length;
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -99,15 +103,31 @@ function DashboardContent() {
         </Link>
       </motion.div>
 
+      {/* Submitted banner */}
+      {justSubmitted && (
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="mt-6">
+          <div className="border border-accent/30 bg-accent/5 p-4 flex items-start gap-3">
+            <Clock className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-foreground">Listing submitted for review</p>
+              <p className="text-sm text-foreground-secondary mt-0.5">
+                Your listing is being reviewed by our team. You&apos;ll see it go live once approved.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats */}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={fadeUp}
-        className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
+        className="mt-8 grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4"
       >
         {[
           { label: 'Active', value: activeCount, icon: Package, href: '' },
+          { label: 'In Review', value: pendingReviewCount, icon: Clock, href: '' },
           { label: 'Sold', value: soldCount, icon: TrendingUp, href: '' },
           { label: 'Offers', value: pendingOffers ?? '--', icon: Tag, href: '/offers' },
           { label: 'Unread', value: unreadCount ?? '--', icon: MessageCircle, href: '/messages' },
@@ -188,9 +208,22 @@ function DashboardContent() {
                     {listing.brand} &middot; {formatPrice(listing.price)}
                   </p>
                 </div>
-                <Badge variant={listing.status === 'active' ? 'accent' : 'muted'}>
-                  {listing.status}
-                </Badge>
+                <div className="text-right flex-shrink-0">
+                  <Badge variant={
+                    listing.status === 'active' ? 'accent'
+                    : listing.status === 'pending_review' ? 'warning'
+                    : listing.status === 'rejected' ? 'error'
+                    : listing.status === 'sold' ? 'success'
+                    : 'muted'
+                  }>
+                    {listing.status === 'pending_review' ? 'In Review' : listing.status}
+                  </Badge>
+                  {listing.status === 'rejected' && listing.rejectionReason && (
+                    <p className="text-xs text-red-500 mt-1 max-w-[150px] text-right">
+                      {listing.rejectionReason}
+                    </p>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
