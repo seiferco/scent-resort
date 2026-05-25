@@ -65,7 +65,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
 
     const listing = doc.data()!;
-    if (listing.status !== 'active' && listing.status !== 'sold') {
+    if (listing.status !== 'active' && listing.status !== 'sold' && listing.status !== 'pending_sale') {
       res.status(404).json({ error: 'not_found', message: 'Listing not found' });
       return;
     }
