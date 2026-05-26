@@ -63,7 +63,7 @@ export default function SafetyPage() {
               <ul className="mt-2 text-foreground-secondary leading-relaxed space-y-2">
                 <li>Ask for detailed photos of the bottle, batch code, and packaging</li>
                 <li>Check the seller&apos;s profile, reviews, and listing history</li>
-                <li>Use payment methods with buyer protection (e.g., PayPal Goods & Services)</li>
+                <li>Always pay through the platform — funds are held in escrow until delivery is confirmed</li>
                 <li>Be cautious of prices that seem too good to be true</li>
                 <li>Report anything suspicious — it helps the entire community</li>
               </ul>

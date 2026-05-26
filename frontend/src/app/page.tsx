@@ -172,14 +172,14 @@ export default function HomePage() {
             },
             {
               icon: Send,
-              title: 'Message Sellers',
-              desc: 'Chat directly with sellers to ask questions, negotiate prices, and arrange your preferred payment method.',
+              title: 'Make an Offer',
+              desc: 'Express interest in a listing and message the seller. Once the seller approves, you can proceed to checkout.',
               step: '02',
             },
             {
               icon: Handshake,
-              title: 'Close the Deal',
-              desc: 'Pay however works best — PayPal, Venmo, Zelle. You and the seller agree on terms directly.',
+              title: 'Secure Checkout',
+              desc: 'Pay safely through our platform. Funds are held in escrow until you confirm delivery — both buyer and seller are protected.',
               step: '03',
             },
           ].map((item, i) => (
