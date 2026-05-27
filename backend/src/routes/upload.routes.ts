@@ -50,7 +50,7 @@ async function uploadToFirebase(file: Express.Multer.File, destination: string):
 function handleMulterError(err: unknown, _req: Request, res: Response, next: NextFunction) {
   if (err instanceof MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      res.status(400).json({ error: 'file_too_large', message: 'File is too large. Maximum size is 4 MB.' });
+      res.status(400).json({ error: 'file_too_large', message: 'File is too large. Please use a smaller image.' });
       return;
     }
     if (err.code === 'LIMIT_UNEXPECTED_FILE') {

@@ -2,13 +2,20 @@
  * Promote a user to admin by email.
  * Usage: npx ts-node src/scripts/promote-admin.ts <email>
  */
+import * as admin from 'firebase-admin';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
-import { db, auth } from '../config/firebase';
+const saPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+if (!saPath) { console.error('FIREBASE_SERVICE_ACCOUNT_KEY not set'); process.exit(1); }
+const cred = JSON.parse(fs.readFileSync(saPath, 'utf-8'));
+admin.initializeApp({ credential: admin.credential.cert(cred) });
+const db = admin.firestore();
+const auth = admin.auth();
 
 async function main() {
   const email = process.argv[2];

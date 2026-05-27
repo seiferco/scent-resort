@@ -133,7 +133,7 @@ function DashboardContent() {
       </motion.div>
 
       {/* Submitted banner */}
-      {justSubmitted && (
+      {justSubmitted && pendingReviewCount > 0 && (
         <motion.div initial="hidden" animate="visible" variants={fadeUp} className="mt-6">
           <div className="border border-accent/30 bg-accent/5 p-4 flex items-start gap-3">
             <Clock className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />

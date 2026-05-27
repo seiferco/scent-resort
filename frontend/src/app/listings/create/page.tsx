@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { ImagePlus, X, DollarSign } from 'lucide-react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { api } from '@/lib/api';
+import { compressImage } from '@/lib/image';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
 
@@ -30,10 +31,14 @@ function CreateListingForm() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleImages(files: FileList | null) {
+  async function handleImages(files: FileList | null) {
     if (!files) return;
+    setError('');
     const newFiles = Array.from(files).slice(0, 5 - imageFiles.length);
-    const updated = [...imageFiles, ...newFiles].slice(0, 5);
+
+    // Compress images client-side before storing
+    const compressed = await Promise.all(newFiles.map((f) => compressImage(f)));
+    const updated = [...imageFiles, ...compressed].slice(0, 5);
     setImageFiles(updated);
 
     const newPreviews = updated.map((f) => URL.createObjectURL(f));

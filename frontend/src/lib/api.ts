@@ -62,13 +62,18 @@ export const api = {
     const authHeaders = await getAuthHeaders();
     const formData = new FormData();
     files.forEach((f) => formData.append(fieldName, f));
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: 'POST',
-      headers: { ...authHeaders },
-      body: formData,
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}${path}`, {
+        method: 'POST',
+        headers: { ...authHeaders },
+        body: formData,
+      });
+    } catch {
+      throw new Error('Images are too large to upload. Please use smaller images.');
+    }
     if (res.status === 413) {
-      throw new Error('Files are too large. Maximum size is 4 MB per file.');
+      throw new Error('Images are too large. Maximum size is 4 MB per image.');
     }
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || data.error || 'Upload failed');
