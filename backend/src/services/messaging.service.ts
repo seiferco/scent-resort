@@ -1,6 +1,7 @@
 import { db } from '../config/firebase';
 import { admin } from '../config/firebase';
 import { MAX_MESSAGE_LENGTH } from '@scentresort/shared';
+import { checkMessageContent } from '../utils/messageFilter';
 
 export async function getOrCreateConversation(params: {
   listingId: string;
@@ -75,6 +76,19 @@ export async function sendMessage(params: {
 
   if (!data.participantIds.includes(senderId)) {
     throw new Error('Not a participant in this conversation');
+  }
+
+  // Check for off-platform deal attempts
+  const filterResult = checkMessageContent(text);
+  if (filterResult.blocked) {
+    // Track violations on user doc for admin visibility
+    db.collection('users').doc(senderId).update({
+      messageViolations: admin.firestore.FieldValue.increment(1),
+    }).catch(() => {}); // fire-and-forget, don't block on failure
+
+    throw new Error(
+      `For your safety, messages cannot contain ${filterResult.reason}. All transactions should stay on ScentResort.`
+    );
   }
 
   const messageRef = convoRef.collection('messages').doc();

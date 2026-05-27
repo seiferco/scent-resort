@@ -24,6 +24,7 @@ export function ChatThread({ conversationId }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,13 +58,14 @@ export function ChatThread({ conversationId }: Props) {
     if (!newMessage.trim() || sending) return;
 
     setSending(true);
+    setSendError('');
     try {
       await api.post(`/conversations/${conversationId}/messages`, {
         text: newMessage.trim(),
       });
       setNewMessage('');
     } catch (err: any) {
-      alert(err.message);
+      setSendError(err.message || 'Failed to send message');
     } finally {
       setSending(false);
     }
@@ -90,6 +92,11 @@ export function ChatThread({ conversationId }: Props) {
 
       {/* Input */}
       <form onSubmit={handleSend} className="border-t border-border p-3 sm:p-4">
+        {sendError && (
+          <div className="mb-2 text-xs text-accent font-medium bg-accent/5 border border-accent/20 px-3 py-2">
+            {sendError}
+          </div>
+        )}
         <div className="flex gap-2">
           <input
             type="text"
