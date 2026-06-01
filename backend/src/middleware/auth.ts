@@ -100,6 +100,27 @@ export async function requireVerifiedEmail(
   }
 }
 
+// Middleware that requires minimum age (must come after requireAuth)
+export function requireMinAge(minAge: number) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = (req as AuthenticatedRequest).user;
+    if (!user.dateOfBirth) {
+      res.status(403).json({ error: 'dob_required', message: 'Date of birth is required to access this feature' });
+      return;
+    }
+    const dob = new Date(user.dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    if (age < minAge) {
+      res.status(403).json({ error: 'age_restricted', message: `You must be at least ${minAge} years old` });
+      return;
+    }
+    next();
+  };
+}
+
 // Lighter middleware that only verifies the Firebase token (no Firestore doc required)
 // Used for the /auth/register endpoint where the doc doesn't exist yet
 export async function requireToken(

@@ -9,6 +9,7 @@ export interface User {
   email: string;
   displayName: string;
   photoURL: string | null;
+  dateOfBirth: string | null;
   bio: string;
   location: string;
   preferredPayment: string;
@@ -176,6 +177,10 @@ export interface Order {
   sellerPayout: number;  // amount - platformFee in cents
   currency: string;
 
+  // Discounts
+  discountAmount: number;           // cents (0 if no coupons)
+  appliedCouponIds: string[];
+
   // Stripe references
   stripePaymentIntentId: string;
   stripeChargeId: string | null;
@@ -207,7 +212,89 @@ export interface Order {
   updatedAt: string;
 }
 
-// ── API ──
+// ── Mystery Wheel ──
+
+export interface WheelPrize {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  value: number;           // retail value in cents
+  probability: number;     // 0-1 (e.g. 0.005 = 0.5%)
+  type: 'fragrance' | 'sample' | 'merch' | 'credit' | 'voucher';
+  creditAmount?: number;   // cents, if type === 'credit'
+}
+
+export type SpinStatus = 'pending_payment' | 'completed' | 'prize_shipped' | 'prize_credited' | 'fulfilled';
+
+// ── Coupons ──
+
+export type CouponType = 'site_credit' | 'free_shipping';
+export type CouponStatus = 'active' | 'used' | 'expired';
+
+export interface UserCoupon {
+  id: string;
+  userId: string;
+  spinId: string;
+  type: CouponType;
+  description: string;
+  amountOff: number;       // cents
+  usedOnOrderId: string | null;
+  status: CouponStatus;
+  expiresAt: string;
+  createdAt: string;
+}
+
+// ── Prize Fulfillment ──
+
+export type FulfillmentChoice = 'ship' | 'credit';
+
+export interface ShippingAddress {
+  fullName: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+export interface Spin {
+  id: string;
+  userId: string;
+  userDisplayName: string;
+  wheelId: string;
+  prizeId: string;
+  prizeName: string;
+  prizeImage: string;
+  prizeValue: number;
+  prizeType: WheelPrize['type'];
+  status: SpinStatus;
+  isFree: boolean;
+  amountPaid: number;      // cents (0 for free spins)
+  stripePaymentIntentId: string | null;
+  serverSeed: string;
+  serverSeedHash: string;
+  clientSeed: string;
+  nonce: number;
+  couponId?: string;
+  fulfillmentMethod?: FulfillmentChoice;
+  shippingAddress?: ShippingAddress;
+  printifyOrderId?: string;
+  trackingNumber?: string;
+  createdAt: string;
+}
+
+export interface WheelConfig {
+  id: string;
+  name: string;
+  price: number;           // cents
+  prizes: WheelPrize[];
+  active: boolean;
+  createdAt: string;
+}
+
+// ─��� API ──
 
 export interface ApiError {
   error: string;

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { api } from '@/lib/api';
 import { GradientBlobs } from '@/components/ui/GradientBlobs';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -29,6 +30,7 @@ export default function RegisterPage() {
   const { signUp, signInWithGoogle, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -52,10 +54,17 @@ export default function RegisterPage() {
       setError('Password must be at least 8 characters');
       return;
     }
+    if (!dateOfBirth) {
+      setError('Date of birth is required');
+      return;
+    }
 
     setLoading(true);
     try {
       await signUp(email, password);
+      if (dateOfBirth) {
+        await api.put('/auth/profile', { dateOfBirth });
+      }
       router.push('/listings');
     } catch (err: any) {
       setError(getAuthError(err));
@@ -126,6 +135,15 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+            />
+            <Input
+              id="dateOfBirth"
+              type="date"
+              label="Date of Birth"
+              required
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
             />
             <Input
               id="password"

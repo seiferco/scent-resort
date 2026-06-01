@@ -30,6 +30,9 @@ import stripeRoutes from './routes/stripe.routes';
 import ordersRoutes from './routes/orders.routes';
 import offersRoutes from './routes/offers.routes';
 import webhooksRoutes from './routes/webhooks.routes';
+import wheelRoutes from './routes/wheel.routes';
+import badgesRoutes from './routes/badges.routes';
+import couponsRoutes from './routes/coupons.routes';
 
 const app = express();
 
@@ -88,6 +91,9 @@ app.use('/api/v1/upload', writeLimiter, uploadRoutes);
 app.use('/api/v1/stripe', writeLimiter, stripeRoutes);
 app.use('/api/v1/orders', writeLimiter, ordersRoutes);
 app.use('/api/v1/offers', writeLimiter, offersRoutes);
+app.use('/api/v1/wheel', writeLimiter, wheelRoutes);
+app.use('/api/v1/badges', badgesRoutes);
+app.use('/api/v1/coupons', couponsRoutes);
 
 // Health check
 app.get('/api/v1/health', (_req, res) => {

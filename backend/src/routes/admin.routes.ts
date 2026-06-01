@@ -199,4 +199,88 @@ router.post('/orders/:id/resolve-dispute', async (req: Request, res: Response) =
   }
 });
 
+// ── Wheel Management ──
+
+// GET /admin/wheel/spins — Spins needing fulfillment + stats
+router.get('/wheel/spins', async (_req: Request, res: Response) => {
+  try {
+    // Get spins needing attention (physical prizes claimed)
+    const pendingSnap = await db
+      .collection('spins')
+      .where('status', 'in', ['prize_shipped', 'completed', 'fulfilled'])
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
+
+    const spins = pendingSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    // Quick stats
+    const totalSpinsSnap = await db.collection('spins').count().get();
+    const paidSpinsSnap = await db
+      .collection('spins')
+      .where('isFree', '==', false)
+      .count()
+      .get();
+
+    res.json({
+      spins,
+      stats: {
+        totalSpins: totalSpinsSnap.data().count,
+        paidSpins: paidSpinsSnap.data().count,
+        revenue: paidSpinsSnap.data().count * 2500, // WHEEL_SPIN_PRICE
+        pendingFulfillment: spins.filter((s: any) => s.status === 'prize_shipped').length,
+      },
+    });
+  } catch (err) {
+    console.error('Admin wheel spins error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to fetch wheel spins' });
+  }
+});
+
+// POST /admin/wheel/spins/:id/ship — Mark spin as shipped with tracking
+router.post('/wheel/spins/:id/ship', async (req: Request, res: Response) => {
+  try {
+    const spinId = getParam(req, 'id');
+    const { trackingNumber, trackingCarrier } = req.body;
+
+    if (!trackingNumber) {
+      res.status(400).json({ error: 'bad_request', message: 'Tracking number required' });
+      return;
+    }
+
+    const spinRef = db.collection('spins').doc(spinId);
+    const spinDoc = await spinRef.get();
+
+    if (!spinDoc.exists) {
+      res.status(404).json({ error: 'not_found', message: 'Spin not found' });
+      return;
+    }
+
+    await spinRef.update({
+      trackingNumber,
+      trackingCarrier: trackingCarrier || null,
+      status: 'fulfilled',
+    });
+
+    // Send shipping notification email to winner
+    const spin = spinDoc.data()!;
+    const userDoc = await db.collection('users').doc(spin.userId).get();
+    if (userDoc.exists) {
+      const { sendPrizeShippedNotification } = await import('../services/email.service');
+      sendPrizeShippedNotification({
+        email: userDoc.data()!.email,
+        displayName: spin.userDisplayName,
+        prizeName: spin.prizeName,
+        trackingNumber,
+        trackingCarrier: trackingCarrier || '',
+      }).catch(() => {});
+    }
+
+    res.json({ message: 'Spin marked as shipped' });
+  } catch (err) {
+    console.error('Admin ship spin error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to update spin' });
+  }
+});
+
 export default router;

@@ -9,19 +9,33 @@ import {
   PLATFORM_FEE_PERCENT,
   ESCROW_WINDOW_HOURS,
 } from '@scentresort/shared';
+import { applyCoupons, restoreCoupons } from './coupon.service';
 import type { Listing, User, OrderStatus } from '@scentresort/shared';
 
 // ── Create Order ──
 
-export async function createOrder(listing: Listing, buyer: User) {
+export async function createOrder(listing: Listing, buyer: User, couponIds: string[] = []) {
   const platformFee = Math.round(listing.price * PLATFORM_FEE_PERCENT / 100);
   const sellerPayout = listing.price - platformFee;
 
-  // Atomic: check listing is still active and reserve it
   const orderRef = db.collection('orders').doc();
   const listingRef = db.collection('listings').doc(listing.id);
 
-  const { paymentIntent } = await createPaymentIntent(listing.price, listing.currency, {
+  // Calculate discount from coupons (capped at platform fee)
+  let discountAmount = 0;
+  let adjustedAmount = listing.price;
+  let adjustedPlatformFee = platformFee;
+  let appliedCouponIds: string[] = [];
+
+  if (couponIds.length) {
+    const discount = await applyCoupons(couponIds, buyer.uid, orderRef.id, listing.price);
+    discountAmount = discount.totalDiscount;
+    adjustedAmount = discount.adjustedAmount;
+    adjustedPlatformFee = discount.adjustedPlatformFee;
+    appliedCouponIds = discount.appliedCouponIds;
+  }
+
+  const { paymentIntent } = await createPaymentIntent(adjustedAmount, listing.currency, {
     orderId: orderRef.id,
     listingId: listing.id,
     buyerId: buyer.uid,
@@ -46,7 +60,9 @@ export async function createOrder(listing: Listing, buyer: User) {
       sellerId: listing.sellerId,
       sellerDisplayName: listing.sellerDisplayName,
       amount: listing.price,
-      platformFee,
+      discountAmount,
+      appliedCouponIds,
+      platformFee: adjustedPlatformFee,
       sellerPayout,
       currency: listing.currency,
       stripePaymentIntentId: paymentIntent.id,
@@ -71,6 +87,10 @@ export async function createOrder(listing: Listing, buyer: User) {
     });
   });
   } catch (err) {
+    // Restore coupons if order creation failed
+    if (appliedCouponIds.length) {
+      await restoreCoupons(appliedCouponIds).catch(() => {});
+    }
     await cancelPaymentIntent(paymentIntent.id).catch(() => {});
     throw err;
   }
@@ -78,8 +98,9 @@ export async function createOrder(listing: Listing, buyer: User) {
   return {
     orderId: orderRef.id,
     clientSecret: paymentIntent.client_secret!,
-    amount: listing.price,
-    platformFee,
+    amount: adjustedAmount,
+    discountAmount,
+    platformFee: adjustedPlatformFee,
     sellerPayout,
   };
 }
@@ -142,6 +163,11 @@ export async function cancelOrder(orderId: string, userId: string) {
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   await batch.commit();
+
+  // Restore any applied coupons
+  if (order.appliedCouponIds?.length) {
+    await restoreCoupons(order.appliedCouponIds).catch(() => {});
+  }
 }
 
 export async function markShipped(

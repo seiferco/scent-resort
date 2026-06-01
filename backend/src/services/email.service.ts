@@ -109,3 +109,44 @@ export function sendOfferDeclined(offer: { listingTitle: string; buyerId: string
     if (email) send(email, offerDeclinedEmail(offer));
   });
 }
+
+// ── Wheel prize emails ──
+
+export async function sendPrizeWonAdminNotification(data: {
+  userDisplayName: string;
+  prizeName: string;
+  prizeValue: number;
+  spinId: string;
+}) {
+  const adminEmail = 'scentresort@icloud.com';
+  const subject = `🎡 High-value prize won: ${data.prizeName}`;
+  const html = `
+    <div style="font-family: system-ui, sans-serif; max-width: 500px;">
+      <h2 style="margin-bottom: 8px;">Prize Won — Manual Fulfillment Needed</h2>
+      <p><strong>${data.userDisplayName}</strong> just won <strong>${data.prizeName}</strong> ($${(data.prizeValue / 100).toFixed(2)} value).</p>
+      <p>Spin ID: <code>${data.spinId}</code></p>
+      <p>They'll submit their shipping address when they claim it. Check the admin panel for fulfillment details.</p>
+    </div>
+  `;
+  await send(adminEmail, { subject, html });
+}
+
+export async function sendPrizeShippedNotification(data: {
+  email: string;
+  displayName: string;
+  prizeName: string;
+  trackingNumber: string;
+  trackingCarrier: string;
+}) {
+  const subject = `Your prize is on its way! 🎉`;
+  const html = `
+    <div style="font-family: system-ui, sans-serif; max-width: 500px;">
+      <h2 style="margin-bottom: 8px;">Your Prize Has Shipped</h2>
+      <p>Hey ${data.displayName},</p>
+      <p>Great news — your <strong>${data.prizeName}</strong> from the ScentResort Mystery Wheel has been shipped!</p>
+      ${data.trackingNumber ? `<p><strong>Tracking:</strong> ${data.trackingNumber}${data.trackingCarrier ? ` (${data.trackingCarrier})` : ''}</p>` : ''}
+      <p style="margin-top: 16px; color: #666;">— The ScentResort Team</p>
+    </div>
+  `;
+  await send(data.email, { subject, html });
+}

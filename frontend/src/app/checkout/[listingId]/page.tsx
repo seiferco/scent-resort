@@ -11,6 +11,7 @@ import { api } from '@/lib/api';
 import stripePromise from '@/lib/stripe';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { CouponSelector } from '@/components/checkout/CouponSelector';
 import { formatPrice } from '@/lib/utils';
 import type { Listing } from '@scentresort/shared';
 
@@ -83,20 +84,22 @@ function CheckoutContent() {
   const router = useRouter();
   const { resendVerificationEmail } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [offerId, setOfferId] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<CheckoutData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState('');
   const [verificationSent, setVerificationSent] = useState(false);
   const [sendingVerification, setSendingVerification] = useState(false);
+  const [selectedCouponIds, setSelectedCouponIds] = useState<string[]>([]);
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
   useEffect(() => {
     async function init() {
       try {
-        // Fetch listing details
         const listingData = await api.get<Listing>(`/listings/${listingId}`);
         setListing(listingData);
 
-        // Verify buyer has an accepted offer
         const offerRes = await api.get<{ offer: any }>(`/offers/listing/${listingId}/mine`);
         if (!offerRes.offer || offerRes.offer.status !== 'accepted') {
           setError('You need an accepted offer to proceed with checkout. Make an offer on the listing first.');
@@ -104,12 +107,7 @@ function CheckoutContent() {
           return;
         }
 
-        // Create checkout session with offerId
-        const checkoutData = await api.post<CheckoutData>('/orders/checkout', {
-          listingId,
-          offerId: offerRes.offer.id,
-        });
-        setCheckout(checkoutData);
+        setOfferId(offerRes.offer.id);
       } catch (err: any) {
         setError(err.message || 'Failed to initialize checkout');
       } finally {
@@ -118,6 +116,30 @@ function CheckoutContent() {
     }
     init();
   }, [listingId]);
+
+  async function handleProceedToPayment() {
+    if (!offerId) return;
+    setCheckoutLoading(true);
+    setError('');
+
+    try {
+      const checkoutData = await api.post<CheckoutData>('/orders/checkout', {
+        listingId,
+        offerId,
+        couponIds: selectedCouponIds,
+      });
+      setCheckout(checkoutData);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create checkout');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
+
+  function handleCouponSelect(ids: string[], discount: number) {
+    setSelectedCouponIds(ids);
+    setCouponDiscount(discount);
+  }
 
   if (loading) {
     return (
@@ -132,7 +154,7 @@ function CheckoutContent() {
 
   const isEmailError = error.toLowerCase().includes('verify your email');
 
-  if (error || !listing || !checkout) {
+  if (error || !listing) {
     return (
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-12 text-center">
         <h1 className="font-display text-2xl font-bold text-foreground uppercase tracking-tight">
@@ -171,6 +193,8 @@ function CheckoutContent() {
     );
   }
 
+  const platformFee = listing ? Math.round(listing.price * 10 / 100) : 0;
+
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12">
       <motion.div initial="hidden" animate="visible" variants={fadeUp}>
@@ -208,19 +232,37 @@ function CheckoutContent() {
             <div className="mt-4 border border-border p-4 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-foreground-secondary">Item price</span>
-                <span className="text-foreground font-medium">{formatPrice(checkout.amount)}</span>
+                <span className="text-foreground font-medium">{formatPrice(listing.price)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-foreground-secondary">Platform fee (10%)</span>
-                <span className="text-foreground-secondary">{formatPrice(checkout.platformFee)}</span>
+                <span className="text-foreground-secondary">Service fee (10%)</span>
+                <span className="text-foreground-secondary">{formatPrice(checkout?.platformFee ?? platformFee)}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-accent font-medium">Service fee discount</span>
+                  <span className="text-accent font-medium">-{formatPrice(couponDiscount)}</span>
+                </div>
+              )}
               <div className="border-t border-border pt-3 flex justify-between">
                 <span className="font-bold text-foreground uppercase text-sm tracking-wide">Total</span>
                 <span className="font-display text-2xl font-bold text-foreground">
-                  {formatPrice(checkout.amount)}
+                  {formatPrice(checkout?.amount ?? (listing.price - couponDiscount))}
                 </span>
               </div>
+              {couponDiscount > 0 && (
+                <p className="text-[11px] text-foreground-muted pt-1">
+                  Coupons reduce the service fee only — the seller receives the full item price.
+                </p>
+              )}
             </div>
+
+            {/* Coupon selector (before payment) */}
+            {!checkout && (
+              <div className="mt-4">
+                <CouponSelector onSelect={handleCouponSelect} maxDiscount={platformFee} />
+              </div>
+            )}
 
             {/* Trust badges */}
             <div className="mt-4 border border-border p-4">
@@ -243,27 +285,44 @@ function CheckoutContent() {
               Payment Details
             </h2>
 
-            <div className="border border-border p-6">
-              <Elements
-                stripe={stripePromise}
-                options={{
-                  clientSecret: checkout.clientSecret,
-                  appearance: {
-                    theme: 'flat',
-                    variables: {
-                      colorPrimary: '#DB4A2B',
-                      colorBackground: '#E4E2DD',
-                      colorText: '#1E1E1E',
-                      colorDanger: '#DB4A2B',
-                      fontFamily: 'Satoshi, system-ui, sans-serif',
-                      borderRadius: '0px',
+            {checkout ? (
+              <div className="border border-border p-6">
+                <Elements
+                  stripe={stripePromise}
+                  options={{
+                    clientSecret: checkout.clientSecret,
+                    appearance: {
+                      theme: 'flat',
+                      variables: {
+                        colorPrimary: '#DB4A2B',
+                        colorBackground: '#E4E2DD',
+                        colorText: '#1E1E1E',
+                        colorDanger: '#DB4A2B',
+                        fontFamily: 'Satoshi, system-ui, sans-serif',
+                        borderRadius: '0px',
+                      },
                     },
-                  },
-                }}
-              >
-                <PaymentForm orderId={checkout.orderId} amount={checkout.amount} />
-              </Elements>
-            </div>
+                  }}
+                >
+                  <PaymentForm orderId={checkout.orderId} amount={checkout.amount} />
+                </Elements>
+              </div>
+            ) : (
+              <div className="border border-border p-6">
+                <Button
+                  size="lg"
+                  className="w-full gap-2"
+                  onClick={handleProceedToPayment}
+                  loading={checkoutLoading}
+                >
+                  <Lock className="h-4 w-4" />
+                  Proceed to Payment
+                </Button>
+                <p className="text-xs text-foreground-muted text-center mt-3">
+                  Click to create your secure payment session
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

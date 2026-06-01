@@ -17,25 +17,37 @@ import {
   ShoppingBag,
   CreditCard,
   Tag,
+  Disc,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useBadgeCounts } from '@/hooks/useBadgeCounts';
 import { Avatar } from '@/components/ui/Avatar';
-import { cn } from '@/lib/utils';
-// comment 
+import { cn, isOldEnough } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/listings', label: 'Browse', icon: Search },
-  { href: '/listings/create', label: 'Sell', icon: Plus },
-  { href: '/offers', label: 'Offers', icon: Tag },
-  { href: '/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/messages', label: 'Messages', icon: MessageCircle },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/listings', label: 'Browse', icon: Search, badgeKey: null },
+  { href: '/wheel', label: 'Spin', icon: Disc, badgeKey: null },
+  { href: '/listings/create', label: 'Sell', icon: Plus, badgeKey: null },
+  { href: '/offers', label: 'Offers', icon: Tag, badgeKey: 'offers' as const },
+  { href: '/orders', label: 'Orders', icon: ShoppingBag, badgeKey: 'orders' as const },
+  { href: '/messages', label: 'Messages', icon: MessageCircle, badgeKey: 'messages' as const },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, badgeKey: null },
 ];
+
+function NavBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  return (
+    <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white leading-none">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
 
 export function Header() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const badgeCounts = useBadgeCounts();
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');
@@ -57,7 +69,9 @@ export function Header() {
             <nav className="hidden md:flex items-center gap-1">
               {user ? (
                 <>
-                  {navLinks.map((link) => (
+                  {navLinks
+                    .filter((link) => link.href !== '/wheel' || isOldEnough(user.dateOfBirth, 18))
+                    .map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
@@ -70,6 +84,7 @@ export function Header() {
                     >
                       <link.icon className="h-3.5 w-3.5" />
                       {link.label}
+                      {link.badgeKey && <NavBadge count={badgeCounts[link.badgeKey]} />}
                     </Link>
                   ))}
                 </>
@@ -202,7 +217,9 @@ export function Header() {
               </div>
 
               <nav className="p-2">
-                {navLinks.map((link) => (
+                {navLinks
+                  .filter((link) => link.href !== '/wheel' || isOldEnough(user?.dateOfBirth ?? null, 18))
+                  .map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -216,6 +233,7 @@ export function Header() {
                   >
                     <link.icon className="h-5 w-5" />
                     {link.label}
+                    {link.badgeKey && <NavBadge count={badgeCounts[link.badgeKey]} />}
                   </Link>
                 ))}
                 <Link

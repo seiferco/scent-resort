@@ -18,3 +18,12 @@ export const PLATFORM_FEE_PERCENT = 10;
 export const ESCROW_WINDOW_HOURS = 48;
 export const AUTO_DELIVERY_DAYS = 7;
 export const SELLER_SHIP_DEADLINE_DAYS = 5;
+
+// Age Restriction
+export const MIN_WHEEL_AGE = 18;
+
+// Mystery Wheel
+export const WHEEL_SPIN_PRICE = 2500; // $25 in cents
+export const FREE_SPIN_COOLDOWN_HOURS = 24;
+export const COUPON_EXPIRY_DAYS = 90;
+export const FREE_SHIPPING_VALUE = 800; // $8 estimated shipping cost in cents

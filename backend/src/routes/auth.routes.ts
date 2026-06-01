@@ -17,10 +17,20 @@ router.post('/register', requireToken, async (req: Request, res: Response) => {
       return;
     }
 
+    // Validate optional dateOfBirth
+    let dateOfBirth: string | null = null;
+    if (req.body?.dateOfBirth && /^\d{4}-\d{2}-\d{2}$/.test(req.body.dateOfBirth)) {
+      const parsed = new Date(req.body.dateOfBirth);
+      if (!isNaN(parsed.getTime()) && parsed <= new Date()) {
+        dateOfBirth = req.body.dateOfBirth;
+      }
+    }
+
     const newUser = {
       email: decoded.email || '',
       displayName: decoded.name || decoded.email?.split('@')[0] || 'User',
       photoURL: decoded.picture || null,
+      dateOfBirth,
       bio: '',
       location: '',
       preferredPayment: '',
@@ -46,7 +56,7 @@ router.post('/register', requireToken, async (req: Request, res: Response) => {
 router.put('/profile', requireAuth, async (req: Request, res: Response) => {
   try {
     const user = (req as AuthenticatedRequest).user;
-    const { displayName, bio, location, preferredPayment, photoURL } = req.body;
+    const { displayName, bio, location, preferredPayment, photoURL, dateOfBirth } = req.body;
 
     const updates: Record<string, any> = {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -66,6 +76,15 @@ router.put('/profile', requireAuth, async (req: Request, res: Response) => {
     }
     if (typeof photoURL === 'string' || photoURL === null) {
       updates.photoURL = photoURL;
+    }
+    // DOB can only be set once (prevent age-gate gaming)
+    if (dateOfBirth && !user.dateOfBirth) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+        const parsed = new Date(dateOfBirth);
+        if (!isNaN(parsed.getTime()) && parsed <= new Date()) {
+          updates.dateOfBirth = dateOfBirth;
+        }
+      }
     }
 
     await db.collection('users').doc(user.uid).update(updates);

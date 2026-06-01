@@ -55,4 +55,24 @@ router.get('/:id/listings', async (req: Request, res: Response) => {
   }
 });
 
+// GET /users/:id/sold — Past sales by user
+router.get('/:id/sold', async (req: Request, res: Response) => {
+  try {
+    const userId = getParam(req, 'id');
+    const snap = await db
+      .collection('listings')
+      .where('sellerId', '==', userId)
+      .where('status', '==', 'sold')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+
+    const listings = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    res.json({ listings });
+  } catch (err) {
+    console.error('Get user sold listings error:', err);
+    res.status(500).json({ error: 'server_error', message: 'Failed to get sold listings' });
+  }
+});
+
 export default router;

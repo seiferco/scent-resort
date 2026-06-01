@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, CreditCard, Package } from 'lucide-react';
+import { MapPin, Calendar, CreditCard, Package, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -26,7 +26,9 @@ export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [profile, setProfile] = useState<PublicUser | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [soldListings, setSoldListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'active' | 'sold'>('active');
 
   useEffect(() => {
     async function load() {
@@ -37,8 +39,12 @@ export default function UserProfilePage() {
         console.error('Failed to load user profile:', err);
       }
       try {
-        const listingsData = await api.get<{ listings: Listing[] }>(`/users/${id}/listings`);
+        const [listingsData, soldData] = await Promise.all([
+          api.get<{ listings: Listing[] }>(`/users/${id}/listings`),
+          api.get<{ listings: Listing[] }>(`/users/${id}/sold`),
+        ]);
         setListings(listingsData.listings);
+        setSoldListings(soldData.listings);
       } catch (err) {
         console.error('Failed to load user listings:', err);
       }
@@ -101,6 +107,12 @@ export default function UserProfilePage() {
                 <Package className="h-3.5 w-3.5" />
                 {listings.length} listing{listings.length !== 1 ? 's' : ''}
               </span>
+              {soldListings.length > 0 && (
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  {soldListings.length} sale{soldListings.length !== 1 ? 's' : ''}
+                </span>
+              )}
             </div>
 
             {profile.bio && (
@@ -117,29 +129,70 @@ export default function UserProfilePage() {
         </div>
       </motion.div>
 
-      {/* Listings */}
+      {/* Listings tabs */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }}
         className="mt-10"
       >
-        <h2 className="font-display text-xl font-bold text-foreground uppercase tracking-[0.05em] mb-4">
-          Listings ({listings.length})
-        </h2>
+        <div className="flex gap-6 border-b border-border mb-6">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`pb-3 text-sm font-bold uppercase tracking-[0.05em] transition-colors ${
+              activeTab === 'active'
+                ? 'text-foreground border-b-2 border-foreground'
+                : 'text-foreground-secondary hover:text-foreground'
+            }`}
+          >
+            Listings ({listings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('sold')}
+            className={`pb-3 text-sm font-bold uppercase tracking-[0.05em] transition-colors ${
+              activeTab === 'sold'
+                ? 'text-foreground border-b-2 border-foreground'
+                : 'text-foreground-secondary hover:text-foreground'
+            }`}
+          >
+            Past Sales ({soldListings.length})
+          </button>
+        </div>
 
-        {listings.length === 0 ? (
-          <EmptyState
-            icon={Package}
-            title="No active listings"
-            description="This seller doesn't have any active listings right now."
-          />
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+        {activeTab === 'active' && (
+          <>
+            {listings.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="No active listings"
+                description="This seller doesn't have any active listings right now."
+              />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+                {listings.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'sold' && (
+          <>
+            {soldListings.length === 0 ? (
+              <EmptyState
+                icon={CheckCircle}
+                title="No sales yet"
+                description="This seller hasn't completed any sales yet."
+              />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+                {soldListings.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </motion.div>
 

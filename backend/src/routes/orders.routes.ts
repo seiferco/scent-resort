@@ -25,7 +25,7 @@ router.use(requireAuth);
 router.post('/checkout', requireVerifiedEmail, async (req: Request, res: Response) => {
   try {
     const buyer = (req as AuthenticatedRequest).user;
-    const { listingId, offerId } = req.body;
+    const { listingId, offerId, couponIds } = req.body;
 
     if (!listingId || !offerId) {
       res.status(400).json({ error: 'bad_request', message: 'listingId and offerId are required' });
@@ -80,7 +80,7 @@ router.post('/checkout', requireVerifiedEmail, async (req: Request, res: Respons
       return;
     }
 
-    const result = await createOrder(listing, buyer);
+    const result = await createOrder(listing, buyer, couponIds || []);
 
     // Link order to offer
     await db.collection('offers').doc(offerId).update({
