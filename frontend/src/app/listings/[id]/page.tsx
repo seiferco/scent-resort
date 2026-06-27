@@ -33,7 +33,7 @@ function conditionLabel(c: string) {
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
   const [seller, setSeller] = useState<SellerProfile | null>(null);
@@ -47,6 +47,7 @@ export default function ListingDetailPage() {
   const [offerSubmitting, setOfferSubmitting] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
     api
       .get<Listing>(`/listings/${id}`)
       .then((data) => {
@@ -56,7 +57,7 @@ export default function ListingDetailPage() {
       .then((res) => setSeller(res.user))
       .catch(() => router.push('/listings'))
       .finally(() => setLoading(false));
-  }, [id, router]);
+  }, [id, router, authLoading]);
 
   // Fetch buyer's existing offer on this listing
   useEffect(() => {
